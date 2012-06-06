@@ -1,0 +1,22 @@
+/**Author: Ivo Crnkovic-Rubsamen
+ * Date Created: Tuesday, June 5, 2012
+ * Inputs:
+ * Outputs:
+ * 
+ */
+
+/**
+ * @author c10ic1
+ *
+ */
+public class SetEvaluator {
+
+	/**
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+
+	}
+
+}
