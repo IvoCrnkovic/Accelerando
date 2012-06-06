@@ -68,7 +68,6 @@ public class PolarityGenerator
 			tweetData += in.nextLine() + "\n";
 		}
 		allTweets = tweetData.split("\\n");
-		System.out.println("" + allTweets.length);
 		subjects = new String[allTweets.length / 2];
 		tweets = new String[allTweets.length / 2];
 		for (int i = 0; i < allTweets.length && j < allTweets.length / 2; i++)
@@ -111,16 +110,16 @@ public class PolarityGenerator
 		}
 		
 		
-		//TODO remove web addresses and usernames
 		// Vote on Tweets
 		for (int k = 0; k < tweets.length; k++)
 		{
 			System.out.println("SUBJECT: " + subjects[k]);
 			current = tweets[k];
-			current.removeAll("http://t.co/........", " ");
+			current = current.replaceAll("http:\\/\\/t.co\\/........", " ");
+			System.out.println("TWEET: " + current);
 			tokens = current.split("(\\W)+");		
 			// Generate Vote
-			System.out.println("TWEET: " + current);
+			
 			
 			do 
 			{
@@ -137,8 +136,11 @@ public class PolarityGenerator
 				}
 				if (vote == 0)
 				{
-					
 					//TODO delete already read tweets from file
+					for (;k < tweets.length; k++)
+					{
+						
+					}
 					words.save(wordsFile);
 					writeStats(userScores);
 					System.exit(0);
