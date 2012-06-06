@@ -328,8 +328,8 @@ public class PolarityGenerator
 		}
 	}
 	
-	// Stores word polarity information
-	private static class Value
+	// Stores word polarity informatio
+	public static class Value
 	{
 		public Value(double d, int i) {
 			occurrences = i;

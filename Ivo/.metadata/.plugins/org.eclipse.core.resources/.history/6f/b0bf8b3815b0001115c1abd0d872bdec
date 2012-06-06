@@ -1,0 +1,14 @@
+/**Author: Ivo Crnkovic-Rubsamen
+ * Date Created: June 6, 2012
+ * Object representing a tweet with fields:
+ * Content: (String) Just the text of the tweet, untouched after we got it from twitter.
+ * Plaintext: (String) The text of the tweet, made suitable for polarization processing
+ * Polarization: (Float) The polarization rating of the tweet.
+ * Weighting: (Float) The weight rating of the tweet.
+ * Date: (Date) The time when the tweet was initially written.
+ * 
+ * 
+ */
+public class Tweet {
+
+}
