@@ -9,6 +9,7 @@ public class PolarityGenerator
 {
 	static File statisticsFile;
 	static final int NUM_STATS = 5;
+	static TST<Double> ignore;
 	public static void main(String[] args)
 	{
 		String[] tokens;
@@ -33,7 +34,7 @@ public class PolarityGenerator
 			System.out.println("Failed to Create statistics.txt");
 			System.exit(0);
 		}
-		TST<Double> ignore = TST.load(new File("ignore.txt"));
+		ignore = TST.load(new File("ignore.txt"));
 		if (ignore == null)
 		{
 			System.out.println("ignore.txt not found");
@@ -116,6 +117,7 @@ public class PolarityGenerator
 			System.out.println("SUBJECT: " + subjects[k]);
 			current = tweets[k];
 			current = current.replaceAll("http:\\/\\/t.co\\/........", " ");
+			current = current.toLowerCase();
 			System.out.println("TWEET: " + current);
 			tokens = current.split("(\\W)+");		
 			// Generate Vote
@@ -293,9 +295,18 @@ public class PolarityGenerator
 		}
     	int N = in.nextInt();
     	in.nextLine();
+    	String line;
     	for (int i = 0; i < N; i++)
     	{
-    		t.put(in.nextLine(), new Value(in.nextDouble(), in.nextInt()));
+    		line = in.nextLine().toLowerCase();
+    		if (ignore.contains(line))
+    		{
+    			in.nextDouble();
+    			in.nextInt();
+    			in.nextLine();
+    			continue;
+    		}
+    		t.put(line, new Value(in.nextDouble(), in.nextInt()));
     		in.nextLine();
     	}
     	return t;
