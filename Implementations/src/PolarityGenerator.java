@@ -68,7 +68,6 @@ public class PolarityGenerator
 			tweetData += in.nextLine() + "\n";
 		}
 		allTweets = tweetData.split("\\n");
-		System.out.println("" + allTweets.length);
 		subjects = new String[allTweets.length / 2];
 		tweets = new String[allTweets.length / 2];
 		for (int i = 0; i < allTweets.length && j < allTweets.length / 2; i++)
@@ -111,16 +110,16 @@ public class PolarityGenerator
 		}
 		
 		
-		//TODO remove web addresses and usernames
 		// Vote on Tweets
 		for (int k = 0; k < tweets.length; k++)
 		{
 			System.out.println("SUBJECT: " + subjects[k]);
 			current = tweets[k];
-			current.removeAll("http://t.co/........", " ");
+			current = current.replaceAll("http:\\/\\/t.co\\/........", " ");
+			System.out.println("TWEET: " + current);
 			tokens = current.split("(\\W)+");		
 			// Generate Vote
-			System.out.println("TWEET: " + current);
+			
 			
 			do 
 			{
@@ -137,8 +136,19 @@ public class PolarityGenerator
 				}
 				if (vote == 0)
 				{
-					
-					//TODO delete already read tweets from file
+					PrintStream writer = null;
+					try {
+						writer = new PrintStream(new File("tweets.txt"));
+					} catch (FileNotFoundException e) {
+						System.out.println("Failed to write remaining tweets");
+					}
+					for (;k < tweets.length; k++)
+					{
+						writer.print(subjects[k] + "\n");
+						writer.print(tweets[k] + "\n");
+					}
+					writer.flush();
+					writer.close();
 					words.save(wordsFile);
 					writeStats(userScores);
 					System.exit(0);
@@ -150,8 +160,10 @@ public class PolarityGenerator
 					System.out.println("Save Successful");
 				}
 			}
-			while (!(vote == 1 || vote == 2 || vote == 3 || vote == 4 || vote == 5));
+			while (!(vote == 1 || vote == 2 || vote == 3 || vote == 4 || vote == 5 || vote == 6));
 			
+			if (vote == 6)
+				continue;
 			// Update User Scores
 			if (vote == 1)
 				userScores.num1++;
@@ -160,7 +172,6 @@ public class PolarityGenerator
 			else if (vote == 3)
 			{
 				userScores.num3++;
-				continue;
 			}
 			else if (vote == 4)
 				userScores.num4++;
