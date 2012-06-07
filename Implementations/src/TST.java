@@ -3,20 +3,25 @@
  * Implementation of a Ternary Search Trie
  */
 
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintStream;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.Collections;
+
 public class TST<Value> implements java.io.Serializable
 {
 	private static final long serialVersionUID = 1L;
 	private int N;       // size
     private Node root;   // root of TST
 
-    private class Node {
+    private class Node implements java.io.Serializable {
         private char c;                 // character
         private Node left, mid, right;  // left, middle, and right subtries
         private Value val;              // value associated with string
@@ -132,84 +137,73 @@ public class TST<Value> implements java.io.Serializable
     }
     
     // Save the TST
-    public void save(File fileName)
+    public void save(File fileName) throws IOException
     {
-    	PrintStream out;
-    	try {
-			fileName.createNewFile();
-		} catch (IOException e1) {
-			System.out.println("Save Unsuccessful");
-			return;
-		}
-    	try {
-			out = new PrintStream(fileName);
-		} catch (FileNotFoundException e) {
-			System.out.println("Save Unsuccessful");
-			return;
-		}
-    	out.println(N);
-    	String[] words = new String[N];
-    	int i = 0;
-    	for (String s : this.keys())
-    	{
-    		words[i] = s;
-    		i++;
-    	}
-    	Collections.shuffle(Arrays.asList(words));
-    	for (i = 0; i < N; i++)
-    	{
-    		out.println(words[i]);
-    		out.println(this.get(words[i]).toString());
-    	}
-    	out.flush();
+    	// Use a FileOutputStream to send data to a file
+    	// called myobject.data.
+    	FileOutputStream f_out = new FileOutputStream (fileName);
+    	// Use an ObjectOutputStream to send object data to the
+    	// FileOutputStream for writing to disk.
+    	ObjectOutputStream obj_out = new ObjectOutputStream (f_out);
+    	// Pass our object to the ObjectOutputStream's
+    	// writeObject() method to cause it to be written out
+    	// to disk.
+    	obj_out.writeObject (this);
     }
     
     // Load a TST from a file (double values)
-    public static TST<Double> load(File fileName)
+    public static TST<PolarityGenerator.Value> load(File fileName) throws IOException, ClassNotFoundException
     {
-    	TST<Double> t = new TST<Double>();
-    	Scanner in = null;
-		try {
-			in = new Scanner(fileName);
-		} 
-		catch (FileNotFoundException e) 
-		{
-			//System.out.println("TST Load Failed");
-			return null;
-		}
-    	int N = in.nextInt();
-    	in.nextLine();
-    	for (int i = 0; i < N; i++)
-    	{
-    		t.put(in.nextLine(), in.nextDouble());
-    		in.nextLine();
-    	}
-    	return t;
+        	FileInputStream f_in = null;
+    		
+    		try {
+    			f_in = new FileInputStream (fileName);
+    		} catch (FileNotFoundException e2) {
+    			System.out.println("Could not find " + fileName);
+    		}
+    		// Read object using ObjectInputStream.
+    		ObjectInputStream words_in = new ObjectInputStream (f_in);
+    		// Read an object.
+    		TST<PolarityGenerator.Value> words = (TST<PolarityGenerator.Value>) words_in.readObject ();
+    		return words;
     }
     
-    /*
+    
     // Test save/load
-    public static void main(String[] args)
+    public static void main(String[] args) throws IOException, ClassNotFoundException
     {
-    	TST<Double> t = new TST<Double>();
-    	t.put("a", 1.0);
-    	t.put("ab", 2.0);
-    	t.put("ac", 3.0);
-    	t.put("ad", 4.0);
-    	t.put("ae", 5.0);
-    	t.put("f", 6.0);
+    	/**
+    	TST<PolarityGenerator.Value> t = new TST<PolarityGenerator.Value>();
+    	t.put("a", new PolarityGenerator.Value(1,1));
+    	t.put("ab", null);
+    	t.put("ac", null);
+    	t.put("ad", null);
+    	t.put("ae", null);
+    	t.put("f", null);
     	for (String s : t.keys())
     	{
     		System.out.println(s);
     		System.out.println(t.get(s).toString());
     	}
-    	t.save(new File("test.tst"));
-    	TST<Double> q = TST.load(new File("test.tst"));
+    	
+    	File placeForTST = new File("test.tst");
+    	t.save(placeForTST);
+    	TST<PolarityGenerator.Value> q = TST.load(placeForTST);
+    	System.out.println("s");
     	for (String s : q.keys())
     	{
     		System.out.println(s);
     		System.out.println(q.get(s).toString());
     	}
+    	*/
+    	
+    	/**
+    	TST<PolarityGenerator.Value> t = load(new File("words.tst"));
+    	for (String s : t.keys())
+    	{
+    		System.out.println(s);
+    		System.out.println(t.get(s).toString());
+    	}
+    	*/
     }
-    */
 }

@@ -2,6 +2,7 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
-	<classpathentry kind="lib" path="C:/Users/Brendan Chou/Misc/eclipse-java-indigo-SR1-win32-x86_64/eclipse/twitter4j-2.2.5/lib/twitter4j-core-2.2.5.jar"/>
+	<classpathentry kind="lib" path="/Users/c10ic1/Desktop/Companies/Accelerando/SentimentDetermination1/twitter4j-2.2.5/lib/twitter4j-core-2.2.5.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/TweetSetEvaluator"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

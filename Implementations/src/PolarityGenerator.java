@@ -1,6 +1,8 @@
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.util.Scanner;
 import java.util.InputMismatchException;
 import java.io.PrintStream;
@@ -9,8 +11,7 @@ public class PolarityGenerator
 {
 	static File statisticsFile;
 	static final int NUM_STATS = 5;
-	static TST<Double> ignore;
-	public static void main(String[] args)
+	public static void main(String[] args) throws IOException, ClassNotFoundException
 	{
 		String[] tokens;
 		String[] tweets;
@@ -26,7 +27,7 @@ public class PolarityGenerator
 		String user;
 		FileWriter voteWriter = null;
 		//Create files if do not exist
-		File wordsFile = new File("words.txt");
+		File wordsFile = new File("words.tst");
 		statisticsFile = new File("statistics.txt");
 		try {
 			statisticsFile.createNewFile();
@@ -34,16 +35,14 @@ public class PolarityGenerator
 			System.out.println("Failed to Create statistics.txt");
 			System.exit(0);
 		}
-		ignore = TST.load(new File("ignore.txt"));
-		if (ignore == null)
-		{
-			System.out.println("ignore.txt not found");
-			System.exit(0);
-		}
-		TST<Value> words = load(wordsFile);
+		
+		TST<Value> words = TST.load(new File("words.tst"));
+		
+		
+		
 		if (words == null)
 		{
-			System.out.println("Failed to load words.txt");
+			System.out.println("Failed to load words.tst");
 			System.exit(0);
 		}
 		File voteFile = new File("votes.txt");
@@ -195,8 +194,6 @@ public class PolarityGenerator
 			{
 				if (tokens[i].length() == 0 || tokens[i] == null)
 					continue;
-				if (ignore.contains(tokens[i]))
-					continue;
 				if (!words.contains(tokens[i]))
 					words.put(tokens[i], new Value(0., 5));
 				v = words.get(tokens[i]);
@@ -280,8 +277,8 @@ public class PolarityGenerator
 			return null;
 	}
 	
-	// Load words tst
-	public static TST<Value> load(File fileName)
+	
+	public static TST<Value> loadTXT(File fileName)
     {
     	TST<Value> t = new TST<Value>();
     	Scanner in = null;
@@ -299,13 +296,6 @@ public class PolarityGenerator
     	for (int i = 0; i < N; i++)
     	{
     		line = in.nextLine().toLowerCase();
-    		if (ignore.contains(line))
-    		{
-    			in.nextDouble();
-    			in.nextInt();
-    			in.nextLine();
-    			continue;
-    		}
     		t.put(line, new Value(in.nextDouble(), in.nextInt()));
     		in.nextLine();
     	}
@@ -328,8 +318,8 @@ public class PolarityGenerator
 		}
 	}
 	
-	// Stores word polarity information
-	private static class Value
+	// Stores word polarity informatio
+	public static class Value implements java.io.Serializable
 	{
 		public Value(double d, int i) {
 			occurrences = i;

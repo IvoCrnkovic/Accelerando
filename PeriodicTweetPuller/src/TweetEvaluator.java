@@ -1,7 +1,17 @@
+import java.io.File;
 import java.util.*;
+
 import twitter4j.*;
 
 public class TweetEvaluator {
+	
+	
+	public static void main (String [] args)//testing purposes only
+	{
+		String words [] = {"the", "donkey", "eats", "poo"};
+		wordSentiment(words);
+	}
+	
 	
 	public static double calculatePolarization(Tweet tweet) {
 		return determineSentiment(tweet.getText());
@@ -101,9 +111,26 @@ public class TweetEvaluator {
 		return sentiment;
 	}
 	
-	private static double wordSentiment(String[] word)
+	private static double wordSentiment(String[] words)
 	{
-		return 5;
+		double totalWordSentiment = 0;
+		File wordsFile = new File("../Implementations/words.txt");
+		
+		TST<PolarityGenerator.Value> wordsTST = PolarityGenerator.load(wordsFile);
+		
+		for (int i = 0; i < words.length;i++)
+		{
+			System.out.println(wordsTST.get(words [i]));
+		}
+		
+		
+		return totalWordSentiment;
+	}
+	
+	private static double getWordPolarity(String word)
+	{
+		double polarity = 0;
+		return polarity;
 	}
 	
 	private static double punctuationSentiment(String text)

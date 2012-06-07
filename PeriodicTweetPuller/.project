@@ -14,4 +14,11 @@
 	<natures>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>Implementations</name>
+			<type>2</type>
+			<location>/Users/c10ic1/Desktop/Companies/Accelerando/Implementations</location>
+		</link>
+	</linkedResources>
 </projectDescription>

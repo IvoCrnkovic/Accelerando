@@ -1,0 +1,71 @@
+/**Author: Ivo Crnkovic-Rubsamen
+ * Date Created: June 6, 2012
+ * Object representing a tweet with fields:
+ * content: (String) Just the text of the tweet, untouched after we got it from twitter.
+ * plaintext: (String) The text of the tweet, made suitable for polarization processing
+ * polarization: (float) The polarization rating of the tweet.
+ * weighting: (float) The weight rating of the tweet.
+ * date: (Date) The time when the tweet was initially written.
+ */
+
+import java.util.Date;
+
+public class Tweet {
+	private String content;
+	private String plaintext;
+	private float polarization;
+	private float weighting;
+	private Date date;
+	
+	
+	//Constructor
+	public Tweet(String content, Date date)
+	{
+		this.content = content;
+		this.date = date;
+	}
+	
+	public String getContent()
+	{
+		return this.content;
+	}
+
+	public void setPlaintext(String plaintext)
+	{
+		this.plaintext = plaintext;
+	}
+	
+	public String getPlaintext()
+	{
+		return this.plaintext;
+	}
+	
+	public void setPolarization(float polarization)
+	{
+		this.polarization = polarization;
+	}
+	
+	public float getPolarization()
+	{
+		return this.polarization;
+	}
+	
+	public void setWeighting(float weighting)
+	{
+		this.weighting = weighting;
+	}
+	
+	public float getWeighting()
+	{
+		return this.weighting;
+	}
+	
+	public Date getDate()
+	{
+		return this.date;
+	}
+	
+	
+	
+	
+}
