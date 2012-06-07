@@ -2,7 +2,7 @@ import java.util.*;
 import twitter4j.*;
 
 public class SuperTweet implements Tweet, java.io.Serializable{
-
+	private static final long serialVersionUID = 1L;
 	private final Tweet tweet;
 	private final String subject;
 	private final double polarization;
@@ -14,7 +14,7 @@ public class SuperTweet implements Tweet, java.io.Serializable{
 		subject = newSubject;
 		//FIXME Change back
 		/*
-		polarization = TweetEvaluator.calculatePolarization(tweet);
+		polarization = TweetEvaluator.determineSentiment(tweet.getText());
 		weight = TweetEvaluator.calculateWeight(tweet);
 		*/
 		polarization = 0;

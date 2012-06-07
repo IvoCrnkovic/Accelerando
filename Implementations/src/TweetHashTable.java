@@ -12,6 +12,7 @@ public class TweetHashTable implements java.io.Serializable
 	private static final long serialVersionUID = 1L;
 	private RBBST[] hashTable;
 	private int size;
+	
 	public TweetHashTable(int size)
 	{
 		this.size = size;
@@ -19,17 +20,14 @@ public class TweetHashTable implements java.io.Serializable
 		for (int i = 0; i < size; i++)
 			hashTable[i] = new RBBST<Date, SuperTweet>();
 	}
-	public TweetHashTable()
-	{
-		
-	}
+	
 	// Add a SuperTweet to the table
 	public void add(SuperTweet t)
 	{
 		hashTable[Math.abs(t.getSubject().hashCode() % size)].put(t.getCreatedAt(), t);
 	}
 	
-	// Return all SuperTweets with a given subject between a start and end Date
+	// Return all SuperTweets with a given subject between a start and end Date as an Iterable
 	public Iterable<SuperTweet> getTweets(String subject, Date startDate, Date endDate)
 	{
 		Queue<SuperTweet> q = new Queue<SuperTweet>();
@@ -40,6 +38,8 @@ public class TweetHashTable implements java.io.Serializable
 		}
 		return q;
 	}
+	
+	// Load a TweetHashTable from a given filename
 	public static TweetHashTable load(String filename)
 	{
 		TweetHashTable tweetTable = null;
@@ -48,8 +48,8 @@ public class TweetHashTable implements java.io.Serializable
         try {
         	superTweetInputStream = new FileInputStream(filename);
 		} catch (FileNotFoundException e1) {
-			System.err.println(filename + " was not found");
-			return null;
+			System.err.println(filename + " was not found.\n Initializing to new TweetHashTable of size 10,000.");
+			return new TweetHashTable(10000);
 		}
         try {
 			superTweetReader = new ObjectInputStream(superTweetInputStream);
@@ -68,7 +68,9 @@ public class TweetHashTable implements java.io.Serializable
 		}
         return tweetTable;
 	}
-	public static void save(String filename, TweetHashTable t)
+	
+	// Save this TweetHashTable to a given filename
+	public void save(String filename)
 	{
 		FileOutputStream superTweetStream = null;
         ObjectOutputStream superTweetWriter = null;
@@ -93,9 +95,19 @@ public class TweetHashTable implements java.io.Serializable
 			return;
 		}
         try {
-			superTweetWriter.writeObject(t);
+			superTweetWriter.writeObject(this);
 		} catch (IOException e1) {
 			System.err.println("Unable to Write to Table to " + filename);
+		}
+        try {
+			superTweetWriter.flush();
+		} catch (IOException e) {
+			System.err.println("Unable to Flush Output to " + filename);
+		}
+        try {
+			superTweetWriter.close();
+		} catch (IOException e) {
+			System.err.println("Unable to Close Object Output Stream");
 		}
 	}
 }

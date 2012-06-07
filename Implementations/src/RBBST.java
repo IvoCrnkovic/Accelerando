@@ -1,3 +1,8 @@
+/**
+ * Serializable implementation of a left-leaning Red Black search tree
+ * Written by Antonio Juliano
+ */
+
 public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Serializable{
 	private static final long serialVersionUID = 1L;
 	private static final boolean RED   = true;
@@ -9,7 +14,8 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
     }
     // BST helper node data type
     private class Node implements java.io.Serializable{
-        private Key key;           // key
+		private static final long serialVersionUID = 1L;
+		private Key key;           // key
         private Value val;         // associated data
         private Node left, right;  // links to left and right subtrees
         private boolean color;     // color of parent link
