@@ -280,6 +280,7 @@ public class PolarityGenerator
 	
 	public static TST<Value> loadTXT(File fileName)
     {
+		System.out.println(fileName);
     	TST<Value> t = new TST<Value>();
     	Scanner in = null;
 		try {
@@ -287,7 +288,7 @@ public class PolarityGenerator
 		} 
 		catch (FileNotFoundException e) 
 		{
-			System.out.println("Failed to Load words.txt");
+			System.out.println("Failed to Load" + fileName);
 			return null;
 		}
     	int N = in.nextInt();
@@ -330,6 +331,11 @@ public class PolarityGenerator
 		public String toString()
 		{
 			return "" + score + "\n" + occurrences; 
+		}
+		
+		public double getScore()
+		{
+			return this.score;
 		}
 	}
 }

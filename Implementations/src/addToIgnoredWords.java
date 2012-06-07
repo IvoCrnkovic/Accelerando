@@ -5,7 +5,7 @@ public class addToIgnoredWords
 	public static void main(String[] args)
 	{
 		File f = new File("ignore.txt");
-		TST<Double> ignore = TST.load(f);
+		TST<PolarityGenerator.Value> ignore = TST.load(f);
 		Scanner in = new Scanner(System.in);
 		String s;
 		for (;;)
