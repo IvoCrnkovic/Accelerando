@@ -3,35 +3,25 @@ import java.io.*;
 
 import twitter4j.*;
 public class TrendingTweetPuller {
-	private static final int TABLE_SIZE = 10000;
 	public static void main(String[] args) throws TwitterException {
-		TweetHashTable tweetTable = new TweetHashTable(TABLE_SIZE);
+		String tweetFile = "superTweets.data";
+		TweetHashTable tweetTable = null;
 		TwitterFactory twitterFactory = new TwitterFactory();
         Twitter twitter = twitterFactory.getInstance();
         ResponseList<Trends> trendsList;
         Query query;
-        File superTweetFile = new File("superTweets.data");
-        try {
-			superTweetFile.createNewFile();
-		} catch (IOException e1) {
-			System.err.println("Unable to Create superTweets.twt");
-			System.exit(0);
-		}
-        FileOutputStream superTweetStream = null;
-        try {
-        	superTweetStream = new FileOutputStream(superTweetFile);
-		} catch (FileNotFoundException e1) {
-			System.err.println("File not found");
-			System.exit(0);
-		}
-        ObjectOutputStream superTweetWriter = null;
+        File superTweetsBackup = new File("superTweetsBackup.data");
         List<Tweet> tweets = null;
     	int trendsListSize, hourlyTrendArraySize, resultsSize;
     	GregorianCalendar origin = new GregorianCalendar();
-    	Date nextUpdate = origin.getTime();
+    	System.out.println("Origin: " + origin.getTime());
+        tweetTable = TweetHashTable.load(tweetFile);
+    	Date nextUpdate;
     	for(;;)
     	{
-    		origin.roll(Calendar.HOUR, true);
+    		System.out.println("Origin First: " + origin.getTime());
+    		origin.roll(Calendar.HOUR, 1);
+    		System.out.println("Origin Second: " + origin.getTime());
     		nextUpdate = origin.getTime();
     		trendsList = twitter.getDailyTrends();
 	        trendsListSize = trendsList.size();
@@ -61,35 +51,16 @@ public class TrendingTweetPuller {
 						tweetTable.add(new SuperTweet(tweets.get(k), trendName));
 				}
 	        }
-	        // Save Hash Table
-	        superTweetFile.delete();
-	        try {
-				superTweetFile.createNewFile();
-			} catch (IOException e1) {
-				System.err.println("Unable to Create superTweets.twt");
-			}
-	        try {
-	        	superTweetStream = new FileOutputStream(superTweetFile);
-			} catch (FileNotFoundException e1) {
-				System.err.println("File not found");
-			}
-	        try {
-	        	superTweetWriter = new ObjectOutputStream(superTweetStream);
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
-	        try {
-				superTweetWriter.writeObject(tweetTable);
-			} catch (IOException e1) {
-				System.err.println("Unable to Write to superTweets.data");
-			}
+	        TweetHashTable.save(tweetFile, tweetTable);
 	        System.out.println("Done.");
+	        System.out.println("Now: " + new Date() + "\nThen: " + nextUpdate);
 	        while(new Date().before(nextUpdate))
 	        {
+	        	System.out.println("Waiting");
 	        	try {
 					Thread.sleep(10000);
 				} catch (InterruptedException e) {
-					System.out.println("Interrupted");
+					System.err.println("Interrupted");
 				}
 	        }
     	}

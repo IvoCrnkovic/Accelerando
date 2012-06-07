@@ -4,9 +4,11 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
     private static final boolean BLACK = false;
 
     private Node root;     // root of the BST
-
+    public RBBST()
+    {
+    }
     // BST helper node data type
-    private class Node {
+    private class Node implements java.io.Serializable{
         private Key key;           // key
         private Value val;         // associated data
         private Node left, right;  // links to left and right subtrees
