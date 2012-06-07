@@ -15,7 +15,7 @@ public class TrendingTweetPuller {
 		String wordsFile = "words.tst";
 		
 		// Number of tweets from each subject to pull
-		final int tweetsToPull = 10;
+		final int tweetsToPull = 50;
 		
 		// Instance Variables
 		TweetHashTable tweetTable = null;
@@ -66,6 +66,8 @@ public class TrendingTweetPuller {
 			        }
 			        catch (TwitterException e)
 			        {
+			        	if(e.isErrorMessageAvailable())
+			        		System.err.println(e.getErrorMessage());
 			        	continue;
 			        }
 					resultsSize = tweets.size();

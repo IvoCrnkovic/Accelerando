@@ -1,7 +1,9 @@
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Scanner;
 
-/**Author: Ivo Crnkovic-Rubsamen
+/**Author: Ivo Crnkovic-Rubsamen, Antonio Juliano
  * Date Created: June 7, 2012
  * A little file to change TSTs being stored as .txt files to .tst files.  Use method change.
  *
@@ -10,9 +12,9 @@ import java.io.IOException;
 
 public class changeFromTXTToTST {
 	
-	private static void change (String txtFileName, String tstFileName) throws IOException
+	private static void change(String txtFileName, String tstFileName) throws IOException
 	{
-		TST<PolarityGenerator.Value> TST = PolarityGenerator.loadTXT(new File(txtFileName));
+		TST<Value> TST = loadTXT(new File(txtFileName));
 		
 		TST.save(new File(tstFileName));
 	}
@@ -21,5 +23,29 @@ public class changeFromTXTToTST {
 	{
 		change("words.txt", "words.tst");
 	}
-
+	private static TST<Value> loadTXT(File fileName)
+    {
+		System.out.println(fileName);
+    	TST<Value> t = new TST<Value>();
+    	Scanner in = null;
+		try {
+			in = new Scanner(fileName);
+		} 
+		catch (FileNotFoundException e) 
+		{
+			System.out.println("Failed to Load" + fileName);
+			return null;
+		}
+    	int N = in.nextInt();
+    	in.nextLine();
+    	String line;
+    	for (int i = 0; i < N; i++)
+    	{
+    		line = in.nextLine().toLowerCase();
+    		t.put(line, new Value(in.nextDouble(), in.nextInt()));
+    		in.nextLine();
+    	}
+    	return t;
+    }
+	
 }

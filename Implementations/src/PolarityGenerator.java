@@ -133,8 +133,8 @@ public class PolarityGenerator
 				}
 				catch (InputMismatchException e)
 				{
-					System.out.println("\nIllegal input. Please try again.");
-					continue;
+					System.out.println("\nIllegal input. Aborting");
+					vote = 0;
 				}
 				if (vote == 0)
 				{
@@ -142,7 +142,7 @@ public class PolarityGenerator
 					try {
 						writer = new PrintStream(new File("tweets.txt"));
 					} catch (FileNotFoundException e) {
-						System.out.println("Failed to write remaining tweets");
+						System.err.println("Failed to write remaining tweets");
 					}
 					for (;k < tweets.length; k++)
 					{
@@ -188,7 +188,7 @@ public class PolarityGenerator
 				voteWriter.write(tweets[k] + "\n" + vote + "\n");
 				voteWriter.flush();
 			} catch (IOException e) {
-				System.out.println("Unable to write vote");
+				System.err.println("Unable to write vote");
 			}
 			
 			
@@ -208,7 +208,7 @@ public class PolarityGenerator
 	}
 	
 	// Save User Voting Statistics
-	public static void writeStats(scoreSheet s)
+	private static void writeStats(scoreSheet s)
 	{
 		PrintStream stats;
 		Scanner statsReader;
@@ -259,7 +259,7 @@ public class PolarityGenerator
 	}
 
 	// Load User Voting Statistics
-	public static scoreSheet readStats(String user)
+	private static scoreSheet readStats(String user)
 	{
 		Scanner stats;
 		String current;
@@ -281,31 +281,6 @@ public class PolarityGenerator
 			return null;
 	}
 	
-	
-	public static TST<Value> loadTXT(File fileName)
-    {
-		System.out.println(fileName);
-    	TST<Value> t = new TST<Value>();
-    	Scanner in = null;
-		try {
-			in = new Scanner(fileName);
-		} 
-		catch (FileNotFoundException e) 
-		{
-			System.out.println("Failed to Load" + fileName);
-			return null;
-		}
-    	int N = in.nextInt();
-    	in.nextLine();
-    	String line;
-    	for (int i = 0; i < N; i++)
-    	{
-    		line = in.nextLine().toLowerCase();
-    		t.put(line, new Value(in.nextDouble(), in.nextInt()));
-    		in.nextLine();
-    	}
-    	return t;
-    }
 	
 	// Stores User Voting Statistics
 	private static class scoreSheet

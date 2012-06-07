@@ -119,10 +119,13 @@ public class TweetEvaluator {
 		double totalWordSentiment = 0;
 		for (int i = 0; i < words.length;i++)
 		{
-			System.out.println(wordPolarities.get(words[i]));
+			if (words[i] != null && words[i].length() != 0 && wordPolarities.contains(words[i]))
+			{
+				totalWordSentiment += wordPolarities.get(words[i]).getScore();
+			}
 		}
 		
-		
+		totalWordSentiment /= words.length;
 		return totalWordSentiment;
 	}
 	
