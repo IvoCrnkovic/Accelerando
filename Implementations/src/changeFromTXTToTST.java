@@ -4,7 +4,6 @@ import java.io.IOException;
 /**Author: Ivo Crnkovic-Rubsamen
  * Date Created: June 7, 2012
  * A little file to change TSTs being stored as .txt files to .tst files.  Use method change.
- *
  */
 
 
