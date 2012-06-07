@@ -1,8 +1,9 @@
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-public class Queue<Item> implements Iterable<Item> {
-    private int N;         // number of elements on queue
+public class Queue<Item> implements Iterable<Item>, java.io.Serializable{
+	private static final long serialVersionUID = 1L;
+	private int N;         // number of elements on queue
     private Node first;    // beginning of queue
     private Node last;     // end of queue
 

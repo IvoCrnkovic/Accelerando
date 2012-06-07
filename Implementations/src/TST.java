@@ -10,8 +10,9 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.Collections;
-public class TST<Value> 
+public class TST<Value> implements java.io.Serializable
 {
+	private static final long serialVersionUID = 1L;
 	private int N;       // size
     private Node root;   // root of TST
 
