@@ -6,7 +6,7 @@ public class Queue<Item> implements Iterable<Item>, java.io.Serializable{
 	private int N;         // number of elements on queue
     private Node first;    // beginning of queue
     private Node last;     // end of queue
-
+    
     // helper linked list class
     private class Node {
         private Item item;

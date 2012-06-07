@@ -1,4 +1,12 @@
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.File;
 import java.util.Date;
+//TODO Incorporate saving/loading
 public class TweetHashTable implements java.io.Serializable
 {
 	private static final long serialVersionUID = 1L;
@@ -11,7 +19,10 @@ public class TweetHashTable implements java.io.Serializable
 		for (int i = 0; i < size; i++)
 			hashTable[i] = new RBBST<Date, SuperTweet>();
 	}
-	
+	public TweetHashTable()
+	{
+		
+	}
 	// Add a SuperTweet to the table
 	public void add(SuperTweet t)
 	{
@@ -28,5 +39,63 @@ public class TweetHashTable implements java.io.Serializable
 			q.enqueue(tree.get(d));
 		}
 		return q;
+	}
+	public static TweetHashTable load(String filename)
+	{
+		TweetHashTable tweetTable = null;
+		FileInputStream superTweetInputStream = null;
+        ObjectInputStream superTweetReader = null;
+        try {
+        	superTweetInputStream = new FileInputStream(filename);
+		} catch (FileNotFoundException e1) {
+			System.err.println(filename + " was not found");
+			return null;
+		}
+        try {
+			superTweetReader = new ObjectInputStream(superTweetInputStream);
+		} catch (IOException e2) {
+			System.err.println("Unable to Initialize tweet reader");
+			return null;
+		}
+        try {
+			tweetTable = (TweetHashTable)superTweetReader.readObject();
+		} catch (IOException e2) {
+			System.err.println("Unable to Read " + filename);
+			return null;
+		} catch (ClassNotFoundException e2) {
+			System.err.println("Unable to Read " + filename);
+			return null;
+		}
+        return tweetTable;
+	}
+	public static void save(String filename, TweetHashTable t)
+	{
+		FileOutputStream superTweetStream = null;
+        ObjectOutputStream superTweetWriter = null;
+        File superTweetFile = new File(filename);
+        superTweetFile.delete();
+        try {
+			superTweetFile.createNewFile();
+		} catch (IOException e1) {
+			System.err.println("Unable to Create superTweets.twt");
+			return;
+		}
+        try {
+        	superTweetStream = new FileOutputStream(superTweetFile);
+		} catch (FileNotFoundException e1) {
+			System.err.println("File not found");
+			return;
+		}
+        try {
+        	superTweetWriter = new ObjectOutputStream(superTweetStream);
+		} catch (IOException e1) {
+			System.err.println("Unable to Open Object Output Stream");
+			return;
+		}
+        try {
+			superTweetWriter.writeObject(t);
+		} catch (IOException e1) {
+			System.err.println("Unable to Write to Table to " + filename);
+		}
 	}
 }
