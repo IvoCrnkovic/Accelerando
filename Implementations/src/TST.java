@@ -172,6 +172,7 @@ public class TST<Value> implements java.io.Serializable
     // Test save/load
     public static void main(String[] args) throws IOException, ClassNotFoundException
     {
+    	/**
     	TST<PolarityGenerator.Value> t = new TST<PolarityGenerator.Value>();
     	t.put("a", new PolarityGenerator.Value(1,1));
     	t.put("ab", null);
@@ -194,5 +195,15 @@ public class TST<Value> implements java.io.Serializable
     		System.out.println(s);
     		System.out.println(q.get(s).toString());
     	}
+    	*/
+    	
+    	/**
+    	TST<PolarityGenerator.Value> t = load(new File("words.tst"));
+    	for (String s : t.keys())
+    	{
+    		System.out.println(s);
+    		System.out.println(t.get(s).toString());
+    	}
+    	*/
     }
 }

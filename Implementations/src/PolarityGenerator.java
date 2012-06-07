@@ -27,7 +27,7 @@ public class PolarityGenerator
 		String user;
 		FileWriter voteWriter = null;
 		//Create files if do not exist
-		File wordsFile = new File("words.txt");
+		File wordsFile = new File("words.tst");
 		statisticsFile = new File("statistics.txt");
 		try {
 			statisticsFile.createNewFile();
@@ -36,26 +36,13 @@ public class PolarityGenerator
 			System.exit(0);
 		}
 		
-		
-		//TST<Value> words = load(wordsFile);
-		// Read from disk using FileInputStream.
-		FileInputStream f_in = null;
-		
-		try {
-			f_in = new FileInputStream ("wordsTST.data");
-		} catch (FileNotFoundException e2) {
-			System.out.println("Could not find wordsTST.data");
-		}
-		// Read object using ObjectInputStream.
-		ObjectInputStream words_in = new ObjectInputStream (f_in);
-		// Read an object.
-		TST<Value> words = (TST<Value>) words_in.readObject ();
+		TST<Value> words = TST.load(new File("words.tst"));
 		
 		
 		
 		if (words == null)
 		{
-			System.out.println("Failed to load wordsTST.data");
+			System.out.println("Failed to load words.tst");
 			System.exit(0);
 		}
 		File voteFile = new File("votes.txt");
@@ -290,22 +277,29 @@ public class PolarityGenerator
 			return null;
 	}
 	
-	// Load words tst
-	public static TST<Value> load(File fileName) throws IOException, ClassNotFoundException
+	
+	public static TST<Value> loadTXT(File fileName)
     {
-    	FileInputStream f_in = null;
-		
+    	TST<Value> t = new TST<Value>();
+    	Scanner in = null;
 		try {
-			f_in = new FileInputStream ("wordsTST.data");
-		} catch (FileNotFoundException e2) {
-			System.out.println("Could not find wordsTST.data");
+			in = new Scanner(fileName);
+		} 
+		catch (FileNotFoundException e) 
+		{
+			System.out.println("Failed to Load words.txt");
+			return null;
 		}
-		// Read object using ObjectInputStream.
-		ObjectInputStream words_in = new ObjectInputStream (f_in);
-		// Read an object.
-		TST<Value> words = (TST<Value>) words_in.readObject ();
-    	
-		return words;
+    	int N = in.nextInt();
+    	in.nextLine();
+    	String line;
+    	for (int i = 0; i < N; i++)
+    	{
+    		line = in.nextLine().toLowerCase();
+    		t.put(line, new Value(in.nextDouble(), in.nextInt()));
+    		in.nextLine();
+    	}
+    	return t;
     }
 	
 	// Stores User Voting Statistics
