@@ -5,8 +5,8 @@ import twitter4j.*;
 public class TrendingTweetPuller {
 	
 	public static void main(String[] args) throws TwitterException {
-		
-		System.out.println("-BEGIN-\n");
+		TweetEvaluator.calculateWeight(null);
+		/*System.out.println("-BEGIN-\n");
 		
 		TwitterFactory twitterFactory = new TwitterFactory();
         Twitter twitter = twitterFactory.getInstance();
@@ -36,7 +36,7 @@ public class TrendingTweetPuller {
 			}
         }
         
-        System.out.println("\n\n\n-COMPLETE-");
+        System.out.println("\n\n\n-COMPLETE-");/**/
         
 	}
 	
