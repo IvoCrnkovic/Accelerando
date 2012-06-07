@@ -164,18 +164,17 @@ public class TST<Value> implements java.io.Serializable
     		// Read object using ObjectInputStream.
     		ObjectInputStream words_in = new ObjectInputStream (f_in);
     		// Read an object.
-    		TST<PolarityGenerator.Value> words = (TST<PolarityGenerator.Value>) words_in.readObject ();
-    		return words;
+    		TST<PolarityGenerator.Value> generatedTST = (TST<PolarityGenerator.Value>) words_in.readObject ();
+    		return generatedTST;
     }
     
     
     // Test save/load
     public static void main(String[] args) throws IOException, ClassNotFoundException
     {
-    	/**
-    	TST<PolarityGenerator.Value> t = new TST<PolarityGenerator.Value>();
+    	/*TST<PolarityGenerator.Value> t = new TST<PolarityGenerator.Value>();
     	t.put("a", new PolarityGenerator.Value(1,1));
-    	t.put("ab", null);
+    	t.put("ab", new PolarityGenerator.Value(2,2));
     	t.put("ac", null);
     	t.put("ad", null);
     	t.put("ae", null);
@@ -186,8 +185,15 @@ public class TST<Value> implements java.io.Serializable
     		System.out.println(t.get(s).toString());
     	}
     	
-    	File placeForTST = new File("test.tst");
+    	
+    	
     	t.save(placeForTST);
+    	
+    	
+    	File placeForTST = new File("test.tst");
+    
+    	
+    	
     	TST<PolarityGenerator.Value> q = TST.load(placeForTST);
     	System.out.println("s");
     	for (String s : q.keys())
@@ -195,9 +201,7 @@ public class TST<Value> implements java.io.Serializable
     		System.out.println(s);
     		System.out.println(q.get(s).toString());
     	}
-    	*/
     	
-    	/**
     	TST<PolarityGenerator.Value> t = load(new File("words.tst"));
     	for (String s : t.keys())
     	{
