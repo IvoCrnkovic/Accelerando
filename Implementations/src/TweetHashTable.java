@@ -6,7 +6,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.File;
 import java.util.Date;
-//TODO Incorporate saving/loading
 public class TweetHashTable implements java.io.Serializable
 {
 	private static final long serialVersionUID = 1L;

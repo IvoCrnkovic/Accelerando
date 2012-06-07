@@ -10,8 +10,12 @@ import twitter4j.*;
 
 public class TrendingTweetPuller {
 	public static void main(String[] args) throws TwitterException {
-		// File to load TweetHashTable data structure from
+		// Files to Load From
 		String tweetFile = "superTweets.data";
+		String wordsFile = "words.tst";
+		
+		// Number of tweets from each subject to pull
+		final int tweetsToPull = 10;
 		
 		// Instance Variables
 		TweetHashTable tweetTable = null;
@@ -26,7 +30,7 @@ public class TrendingTweetPuller {
     	GregorianCalendar origin = new GregorianCalendar();
         tweetTable = TweetHashTable.load(tweetFile);
     	Date nextUpdate;
-    	
+    	TweetEvaluator tweetEvaluator = new TweetEvaluator(wordsFile);
     	
     	for(;;)
     	{
@@ -54,7 +58,7 @@ public class TrendingTweetPuller {
 				{
 					String trendName = hourlyTrendArray[j].getName();
 					query = new Query(trendName);
-			        query.setRpp(2);
+			        query.setRpp(tweetsToPull);
 			        query.setLang("en");
 			        try
 			        {
@@ -66,7 +70,7 @@ public class TrendingTweetPuller {
 			        }
 					resultsSize = tweets.size();
 					for(int k = 0; k < resultsSize; k++)
-						tweetTable.add(new SuperTweet(tweets.get(k), trendName));
+						tweetTable.add(new SuperTweet(tweets.get(k), trendName, tweetEvaluator));
 				}
 	        }
 	        
