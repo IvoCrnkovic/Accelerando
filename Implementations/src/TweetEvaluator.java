@@ -4,8 +4,17 @@ import java.util.*;
 
 import twitter4j.*;
 
+/**
+ * Class useful for determining polarization and weighting of superTweets.  Includes post-processing methods for sanitize and intepret tweet text.
+ */
 public class TweetEvaluator {
+	
 	TST<Value> wordPolarities = null;
+	
+	/**
+	 * Constructor Method.
+	 * @param tstFilename The filename where the .tst file with serialized TST can be found to 
+	 */
 	public TweetEvaluator(String tstFilename)
 	{
 		try {
