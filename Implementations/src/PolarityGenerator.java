@@ -26,6 +26,8 @@ public class PolarityGenerator
 		scoreSheet userScores;
 		String user;
 		FileWriter voteWriter = null;
+		
+		
 		//Create files if do not exist
 		File wordsFile = new File("words.tst");
 		statisticsFile = new File("statistics.txt");
@@ -36,9 +38,8 @@ public class PolarityGenerator
 			System.exit(0);
 		}
 		
-		TST<Value> words = TST.load(new File("words.tst"));
-		
-		
+		// Load TST from file
+		TST<Value> words = (TST<Value>)TST.load(new File("words.tst"));
 		
 		if (words == null)
 		{
@@ -59,7 +60,7 @@ public class PolarityGenerator
 			in = new Scanner(new File("tweets.txt"));
 		} catch (FileNotFoundException e) {
 			System.out.println("Could not open tweets.txt. Aborting");
-			return;
+			System.exit(0);
 		}
 		int j = 0;
 		boolean subject = true;
@@ -88,7 +89,7 @@ public class PolarityGenerator
 		
 		// Print Initial Message and Logon
 		System.out.print("Welcome to the Tweet rating system! Please use the following voting protocol:\n1 - Very Negative" +
-				"\n2 - Somewhat Negative\n3 - Neutral\n4 - SomewhatPositive\n5 - Very Positive\n9 - Save\n0 - Save & Exit\n--------------------\n" +
+				"\n2 - Somewhat Negative\n3 - Neutral\n4 - SomewhatPositive\n5 - Very Positive\n6 - Skip Tweet\n9 - Save\n0 - Save & Exit\n--------------------\n" +
 				"Please Login: ");
 		user = stdIn.next();
 		userScores = readStats(user);
@@ -165,6 +166,8 @@ public class PolarityGenerator
 			
 			if (vote == 6)
 				continue;
+			
+			
 			// Update User Scores
 			if (vote == 1)
 				userScores.num1++;
@@ -198,7 +201,8 @@ public class PolarityGenerator
 					words.put(tokens[i], new Value(0., 5));
 				v = words.get(tokens[i]);
 				// Change Value Accordingly
-				v.score = (v.score * v.occurrences + vote) / (++v.occurrences);
+				v.setScore((v.getScore() * v.getOccurrences() + vote) / (v.getOccurrences() + 1));
+				v.incrementOccurrences();
 			}
 		}
 	}
@@ -318,24 +322,5 @@ public class PolarityGenerator
 			this.num5 = num5;
 		}
 	}
-	
-	// Stores word polarity informatio
-	public static class Value implements java.io.Serializable
-	{
-		public Value(double d, int i) {
-			occurrences = i;
-			score = d;
-		}
-		private int occurrences;
-		private double score;
-		public String toString()
-		{
-			return "" + score + "\n" + occurrences; 
-		}
-		
-		public double getScore()
-		{
-			return this.score;
-		}
-	}
+
 }

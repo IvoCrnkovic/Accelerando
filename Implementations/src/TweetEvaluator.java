@@ -1,23 +1,26 @@
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 import twitter4j.*;
 
 public class TweetEvaluator {
-	
-	
-	public static void main (String [] args)//testing purposes only
+	TST<Value> wordPolarities = null;
+	public TweetEvaluator(String tstFilename)
 	{
-		String words [] = {"the", "donkey", "eats", "poo"};
-		wordSentiment(words);
+		try {
+			wordPolarities = (TST<Value>)TST.load(new File(tstFilename));
+		} catch (IOException e) {
+			System.err.println("IOException: Unable to load TST from " + tstFilename);
+		} catch (ClassNotFoundException e) {
+			System.err.println("ClassNotFoundException: Unable to load TST from " + tstFilename);
+		}
 	}
-	
-	
-	public static double calculatePolarization(Tweet tweet) {
+	public double calculatePolarization(Tweet tweet) {
 		return determineSentiment(tweet.getText());
 	}
 	
-	public static double calculateWeight(Tweet tweet) throws TwitterException {
+	public double calculateWeight(Tweet tweet) throws TwitterException {
 		String username = tweet.getFromUser();
         User user = new TwitterFactory().getInstance().showUser(username);
         long numFollowers= user.getFollowersCount();
@@ -27,7 +30,7 @@ public class TweetEvaluator {
         return Math.log10(total+2);
 	}
 	
-	private static String removeFluff(String text)
+	private String removeFluff(String text)
 	{
 		int io = text.indexOf("http://t.co/");
 		while(io > -1)
@@ -42,7 +45,7 @@ public class TweetEvaluator {
 		return text;
 	}
 	
-	private static String[] tweetToArray(String text)
+	private String[] tweetToArray(String text)
 	{
 		text = text.toLowerCase();
 		text = text.replaceAll("[^abcdefghijklmnopqrstuvwxyz0123456789]", " ");
@@ -50,7 +53,7 @@ public class TweetEvaluator {
 		return tokens;
 	}
 	
-	private static boolean contains(char[] array, char c)
+	private boolean contains(char[] array, char c)
 	{
 		int length = array.length;
 		for(int i = 0; i < length; i++)
@@ -61,7 +64,7 @@ public class TweetEvaluator {
 		return false;
 	}
 	
-	private static double smileySentiment(String text)
+	private double smileySentiment(String text)
 	{
 		int a=0,b=0,c=0,d=0,e=0,len=text.length();
 		char[] eye  = {':',';','8','=','x','X'};
@@ -111,29 +114,25 @@ public class TweetEvaluator {
 		return sentiment;
 	}
 	
-	private static double wordSentiment(String[] words)
+	private double wordSentiment(String[] words)
 	{
 		double totalWordSentiment = 0;
-		File wordsFile = new File("../Implementations/words.txt");
-		
-		TST<PolarityGenerator.Value> wordsTST = PolarityGenerator.loadTXT(wordsFile);
-		
 		for (int i = 0; i < words.length;i++)
 		{
-			System.out.println(wordsTST.get(words [i]));
+			System.out.println(wordPolarities.get(words[i]));
 		}
 		
 		
 		return totalWordSentiment;
 	}
 	
-	private static double getWordPolarity(String word)
+	private double getWordPolarity(String word)
 	{
 		double polarity = 0;
 		return polarity;
 	}
 	
-	private static double punctuationSentiment(String text)
+	private double punctuationSentiment(String text)
 	{
 		int[] punctuation = new int[2];
 		int length = text.length();
@@ -148,7 +147,7 @@ public class TweetEvaluator {
 		return (punctuation[0]+.5)/total;
 	}
 	
-	private static double determineSentiment(String text)
+	private double determineSentiment(String text)
 	{
 		text = removeFluff(text);
 		double sSent = smileySentiment(text);

@@ -151,8 +151,8 @@ public class TST<Value> implements java.io.Serializable
     	obj_out.writeObject (this);
     }
     
-    // Load a TST from a file (double values)
-    public static TST<PolarityGenerator.Value> load(File fileName) throws IOException, ClassNotFoundException
+    // Load an Unparamartrized TST from a File
+    public static TST load(File fileName) throws IOException, ClassNotFoundException
     {
         	FileInputStream f_in = null;
     		
@@ -162,9 +162,9 @@ public class TST<Value> implements java.io.Serializable
     			System.out.println("Could not find " + fileName);
     		}
     		// Read object using ObjectInputStream.
-    		ObjectInputStream words_in = new ObjectInputStream (f_in);
+    		ObjectInputStream words_in = new ObjectInputStream(f_in);
     		// Read an object.
-    		TST<PolarityGenerator.Value> generatedTST = (TST<PolarityGenerator.Value>) words_in.readObject ();
+    		TST generatedTST = (TST) words_in.readObject();
     		return generatedTST;
     }
     

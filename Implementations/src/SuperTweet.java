@@ -5,20 +5,27 @@ public class SuperTweet implements Tweet, java.io.Serializable{
 	private static final long serialVersionUID = 1L;
 	private final Tweet tweet;
 	private final String subject;
-	private final double polarization;
-	private final double weight;
 	
-	public SuperTweet(Tweet newTweet, String newSubject)
+	// Calculated Polarization of the Tweet
+	private double polarization;
+	
+	// Calculated Weight of the Tweet
+	private double weight = 0;
+	
+	// Score Given to the Tweet
+	private int vote;
+	
+	public SuperTweet(Tweet newTweet, String newSubject, TweetEvaluator eval)
 	{
 		tweet = newTweet;
 		subject = newSubject;
-		//FIXME Change back
-		/*
-		polarization = TweetEvaluator.determineSentiment(tweet.getText());
-		weight = TweetEvaluator.calculateWeight(tweet);
-		*/
-		polarization = 0;
-		weight = 1;
+		polarization = eval.calculatePolarization(tweet);
+		try {
+			weight = eval.calculateWeight(tweet);
+		} catch (TwitterException e) {
+			System.err.println("TwitterException: Unable to Calculate Tweet Weight. Initializing to default value (0).");
+		}
+		vote = 0;
 	}
 
 	@Override
