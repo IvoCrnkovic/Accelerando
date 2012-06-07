@@ -7,8 +7,14 @@ public class TweetEvaluator {
 		return determineSentiment(tweet.getText());
 	}
 	
-	public static double calculateWeight(Tweet tweet) {
-		return 1;
+	public static double calculateWeight(Tweet tweet) throws TwitterException {
+		String username = tweet.getFromUser();
+        User user = new TwitterFactory().getInstance().showUser(username);
+        long numFollowers= user.getFollowersCount();
+        long numListed   = user.getListedCount();
+        double total = numFollowers + numListed;
+        
+        return Math.log10(total+2);
 	}
 	
 	private static String removeFluff(String text)
