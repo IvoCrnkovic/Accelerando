@@ -24,6 +24,9 @@ public class TweetEvaluator {
 		} catch (ClassNotFoundException e) {
 			System.err.println("ClassNotFoundException: Unable to load TST from " + tstFilename);
 		}
+		/*
+		 * CHANGE
+		 */
 	}
 	public double calculatePolarization(Tweet tweet) {
 		return determineSentiment(tweet.getText());
