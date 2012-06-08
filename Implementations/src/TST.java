@@ -1,8 +1,3 @@
-
-/**
- * Implementation of a Ternary Search Trie
- */
-
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -15,9 +10,20 @@ import java.util.Arrays;
 import java.util.Scanner;
 import java.util.Collections;
 
+/**
+ *Implementation of a Ternary Search Trie
+ */
 public class TST<Value> implements java.io.Serializable
 {
+	/**
+	 *Serial ID number that eclipse told us to use for serialization.  Don't really know what it does.
+	 *@see Java.io.Serializable
+	 */
 	private static final long serialVersionUID = 1L;
+	
+	/**
+	 * Int storing the number of key-value pairs in the TST
+	 */
 	private int N;       // size
     private Node root;   // root of TST
 

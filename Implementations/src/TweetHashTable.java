@@ -6,12 +6,34 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.File;
 import java.util.Date;
+
+
+/**
+ * Class for storing tweets as hash tables.
+ */
 public class TweetHashTable implements java.io.Serializable
 {
+	/**
+	 *Serial ID number that eclipse told us to use for serialization.  Don't really know what it does.
+	 *@see Java.io.Serializable
+	 */
 	private static final long serialVersionUID = 1L;
 	private RBBST[] hashTable;
+	
+	/**
+	 * Integer holding the size of the hashtable.
+	 */
 	private int size;
 	
+	/**
+	 * Constructor method.
+	 * 
+	 * <p>
+	 * Every index of the hashtable is a RBBST of tweets with a given subject, organized by date created.
+	 * 
+	 * 
+	 * @param size The size of the desired hash table.
+	 */
 	public TweetHashTable(int size)
 	{
 		this.size = size;
@@ -20,13 +42,34 @@ public class TweetHashTable implements java.io.Serializable
 			hashTable[i] = new RBBST<Date, SuperTweet>();
 	}
 	
-	// Add a SuperTweet to the table
+	
+	
+	/**
+	 * Method to add a supertweet to the table.
+	 * 
+	 * <p>
+	 * Adds a supertweet to the table, indexing by the hash code of the subject and the time the tweet was created.
+	 * 
+	 * 
+	 * @param t The tweet to be added.
+	 */
 	public void add(SuperTweet t)
 	{
 		hashTable[Math.abs(t.getSubject().hashCode() % size)].put(t.getCreatedAt(), t);
 	}
 	
-	// Return all SuperTweets with a given subject between a start and end Date as an Iterable
+
+	/**
+	 * Method for creating iterators to go through the hash table.
+	 * 
+	 * <p>
+	 * Creates an iterable that goes through all the tweets of a given subject from some start date to some end date.
+	 * 
+	 * @param subject The subject of the tweets desired.
+	 * @param startDate The earliest time to be looked at.
+	 * @param endDate The latest time to be looked at.
+	 * @return The iterable.
+	 */
 	public Iterable<SuperTweet> getTweets(String subject, Date startDate, Date endDate)
 	{
 		Queue<SuperTweet> q = new Queue<SuperTweet>();
@@ -38,7 +81,16 @@ public class TweetHashTable implements java.io.Serializable
 		return q;
 	}
 	
-	// Load a TweetHashTable from a given filename
+	/**
+	 * Method to load a hashtable from a file.
+	 * 
+	 * <p>
+	 * Uses object serialization to read hashtables from files.
+	 * 
+	 * 
+	 * @param filename The name of the file to read from.
+	 * @return The hash table from the file.
+	 */
 	public static TweetHashTable load(String filename)
 	{
 		TweetHashTable tweetTable = null;
@@ -68,7 +120,15 @@ public class TweetHashTable implements java.io.Serializable
         return tweetTable;
 	}
 	
-	// Save this TweetHashTable to a given filename
+	/**
+	 * Method to save a hashtable to disk in a file.
+	 * 
+	 * <p>
+	 * Uses object serialization the write the hashtable to a file.
+	 * 
+	 * 
+	 * @param filename The name of the file to write to or create if it does not already exist.
+	 */
 	public void save(String filename)
 	{
 		FileOutputStream superTweetStream = null;

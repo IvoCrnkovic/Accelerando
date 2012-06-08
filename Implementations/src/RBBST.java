@@ -1,26 +1,82 @@
 /**
  * Serializable implementation of a left-leaning Red Black search tree
- * Written by Antonio Juliano
+ * 
  */
-
 public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Serializable{
+	
+	/**
+	 *Serial ID number that eclipse told us to use for serialization.  Don't really know what it does.
+	 *@see Java.io.Serializable
+	 */
 	private static final long serialVersionUID = 1L;
+	
+	/**
+	 * Boolean RED, True.
+	 */
 	private static final boolean RED   = true;
+	
+	/**
+	 * Boolean Black, False.
+	 */
     private static final boolean BLACK = false;
 
+    /**
+     * Node, storing the root of the search tree.
+     */
     private Node root;     // root of the BST
+    
     public RBBST()
     {
     }
-    // BST helper node data type
+    
+    
+    /**
+     * BST helper node data type.
+     * 
+     *
+     */
     private class Node implements java.io.Serializable{
-		private static final long serialVersionUID = 1L;
-		private Key key;           // key
-        private Value val;         // associated data
-        private Node left, right;  // links to left and right subtrees
-        private boolean color;     // color of parent link
-        private int N;             // subtree count
+    	/**
+    	 *Serial ID number that eclipse told us to use for serialization.  Don't really know what it does.
+    	 *@see Java.io.Serializable
+    	 */
+    	private static final long serialVersionUID = 1L;
+		
+    	/**
+    	 * Key type
+    	 */
+    	private Key key;
+    	
+    	/**
+    	 * The data associated with a given key.
+    	 */
+        private Value val;
+        
+        /**
+         * Pointers to the left and right subtrees.
+         */
+        private Node left, right;
+        
+        /**
+         * Color of parent link.
+         */
+        private boolean color; 
+ 
+        /**
+         * Number of subtrees.
+         */
+        private int N;
 
+        
+        /**
+         * Constructor method.
+         * 
+         * 
+         * @param key The value for the key of the node for the Node to be created.
+         * @param val The value for the associated data of the Node to be created.
+         * @param color The True/False value of the parent node of the one to be created.
+         * @param N The number of subtrees from the node to be created.
+         */
         public Node(Key key, Value val, boolean color, int N) {
             this.key = key;
             this.val = val;
@@ -32,7 +88,7 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
    /*************************************************************************
     *  Node helper methods
     *************************************************************************/
-    // is node x red; false if x is null ?
+
     private boolean isRed(Node x) {
         if (x == null) return false;
         return (x.color == RED);
@@ -49,10 +105,18 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
     *  Size methods
     *************************************************************************/
 
-    // return number of key-value pairs in this symbol table
+    /**
+     * Method get the size of the symbol table.
+     * 
+     * @return number of key-value pairs in this symbol table
+     */
     public int size() { return size(root); }
 
-    // is this symbol table empty?
+    /**
+     * Method to check if the table is empty.
+     * 
+     * @return True if and only if the root is null.
+     */
     public boolean isEmpty() {
         return root == null;
     }
@@ -61,10 +125,18 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
     *  Standard BST search
     *************************************************************************/
 
-    // value associated with the given key; null if no such key
+    /**
+     * Standard method for getting the value associated with a given key.
+     * 
+     * <p>
+     * Implements a standard BST search procedure, left leaning.
+     * 
+     * 
+     * @param key The key to the data to be searched for.
+     * @return The value associated with a given key, null if no such key.
+     */
     public Value get(Key key) { return get(root, key); }
-
-    // value associated with the given key in subtree rooted at x; null if no such key
+    
     private Value get(Node x, Key key) {
         while (x != null) {
             int cmp = key.compareTo(x.key);
@@ -75,7 +147,12 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
         return null;
     }
 
-    // is there a key-value pair with the given key?
+    /**
+     * Method to determine if there is data associated with a given key.
+     * 
+     * @param key The key to look for data attached to.
+     * @return True if there is data.
+     */
     public boolean contains(Key key) {
         return (get(key) != null);
     }
@@ -88,9 +165,15 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
    /*************************************************************************
     *  Red-black insertion
     *************************************************************************/
-
-    // insert the key-value pair; overwrite the old value with the new value
-    // if the key is already present
+	/**
+	 * Method to implement Red-Black insertion.
+	 * 
+	 * <p>
+	 * inserts the key-value pair; overwrite the old value with the new value if the key is already present
+     * 
+	 * @param key The key to file the data under.
+	 * @param val The data to insert.
+	 */
     public void put(Key key, Value val) {
         root = put(root, key, val);
         root.color = BLACK;
@@ -119,6 +202,11 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
     *  Red-black deletion
     *************************************************************************/
 
+    /**
+     * Method to implement Red-Black deletion of the minimum key.
+     * <p>
+     * Deletes the key-value pair with the minimum valued key
+     */
     // delete the key-value pair with the minimum key
     public void deleteMin() {
         if (isEmpty()) throw new RuntimeException("BST underflow");
@@ -145,7 +233,11 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
     }
 
 
-    // delete the key-value pair with the maximum key
+    /**
+     * Method to implement Red-Black deletion of the maximum key.
+     * <p>
+     * Deletes the key-value pair with the maximum valued key
+     */
     public void deleteMax() {
         if (isEmpty()) throw new RuntimeException("BST underflow");
 
@@ -174,7 +266,11 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
         return balance(h);
     }
 
-    // delete the key-value pair with the given key
+    /**
+     * Method to implement Red-Black deletion of a given key.
+     * <p>
+     * Deletes the key-value pair with a given key
+     */
     public void delete(Key key) { 
         if (!contains(key)) {
             System.err.println("symbol table does not contain " + key);
@@ -302,7 +398,10 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
     *  Utility functions
     *************************************************************************/
 
-    // height of tree; 0 if empty
+    /**
+     * Method to get the height of the tree.
+     * @return An int storing the height of the tree.
+     */
     public int height() { return height(root); }
     private int height(Node x) {
         if (x == null) return 0;
@@ -313,7 +412,11 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
     *  Ordered symbol table methods.
     *************************************************************************/
 
-    // the smallest key; null if no such key
+    /**
+     * Method to find the smallest key in the table.
+     * 
+     * @return Key with the smallest value in the table.  Null if empty tree.
+     */
     public Key min() {
         if (isEmpty()) return null;
         return min(root).key;
@@ -326,7 +429,11 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
         else                return min(x.left); 
     } 
 
-    // the largest key; null if no such key
+    /**
+     * Method to find the largest key in the table.
+     * 
+     * @return Key with the largest value in the table.  Null if empty tree.
+     */
     public Key max() {
         if (isEmpty()) return null;
         return max(root).key;
@@ -339,7 +446,11 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
         else                 return max(x.right); 
     } 
 
-    // the largest key less than or equal to the given key
+    /**
+     * Method to find the largest key in the table less than or equal to the given key..
+     * 
+     * @return Key right below the desired key.  Null if empty tree.
+     */
     public Key floor(Key key) {
         Node x = floor(root, key);
         if (x == null) return null;
@@ -357,7 +468,11 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
         else           return x;
     }
 
-    // the smallest key greater than or equal to the given key
+    /**
+     * Method to find the smallest key in the table less than or equal to the given key..
+     * 
+     * @return Key right below the desired key.  Null if empty tree.
+     */
     public Key ceiling(Key key) {  
         Node x = ceiling(root, key);
         if (x == null) return null;
