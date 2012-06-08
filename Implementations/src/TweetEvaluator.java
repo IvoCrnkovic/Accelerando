@@ -24,9 +24,6 @@ public class TweetEvaluator {
 		} catch (ClassNotFoundException e) {
 			System.err.println("ClassNotFoundException: Unable to load TST from " + tstFilename);
 		}
-		/*
-		 * CHANGE
-		 */
 	}
 	
 	/**
@@ -38,7 +35,6 @@ public class TweetEvaluator {
 	 * pSent is calculated as a multiplier based off the number of exclamation points or question points in the text of the tweet.
 	 * sSent is calculated by assigning positive or negative values to the different parts of smileys and then adding them together.
 	 * wSent is calculated as an average of the word sentiment of each word in the tweet text.
-
 	 * 
 	 * @param tweet the tweet to analyze
 	 * @return A double representing the total polarization of the tweet.

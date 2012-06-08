@@ -18,7 +18,7 @@ public class TrendingTweetPuller {
 		final int tweetsToPull = 10;
 		
 		// Instance Variables
-		TweetHashTable tweetTable = null;
+		TweetTable tweetTable = null;
 		TwitterFactory twitterFactory = new TwitterFactory();
         Twitter twitter = twitterFactory.getInstance();
         ResponseList<Trends> trendsList;
@@ -28,9 +28,10 @@ public class TrendingTweetPuller {
         List<Tweet> tweets = null;
     	int trendsListSize, hourlyTrendArraySize, resultsSize;
     	GregorianCalendar origin = new GregorianCalendar();
-        tweetTable = TweetHashTable.load(tweetFile);
+        tweetTable = TweetTable.load(tweetFile);
     	Date nextUpdate;
     	TweetEvaluator tweetEvaluator = new TweetEvaluator(wordsFile);
+    	
     	
     	for(;;)
     	{

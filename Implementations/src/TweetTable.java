@@ -6,31 +6,39 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.File;
 import java.util.Date;
-public class TweetHashTable implements java.io.Serializable
+public class TweetTable implements java.io.Serializable
 {
 	private static final long serialVersionUID = 1L;
-	private RBBST[] hashTable;
 	private int size;
-	
-	public TweetHashTable(int size)
+	private TST<RBBST<Date, SuperTweet>> tweetTable;
+	public TweetTable()
 	{
-		this.size = size;
-		hashTable = new RBBST[size];
-		for (int i = 0; i < size; i++)
-			hashTable[i] = new RBBST<Date, SuperTweet>();
+		tweetTable = new TST<RBBST<Date, SuperTweet>>();
 	}
 	
 	// Add a SuperTweet to the table
 	public void add(SuperTweet t)
 	{
-		hashTable[Math.abs(t.getSubject().hashCode() % size)].put(t.getCreatedAt(), t);
+		String subject = t.getSubject();
+		if (subject == null | subject.length() == 0)
+		{
+			System.err.println("Subjectless Tweet: Was not Added to TweetTable");
+			return;
+		}
+		if (tweetTable.contains(subject))
+			tweetTable.get(subject).put(t.getCreatedAt(), t);
+		else
+		{
+			tweetTable.put(t.getSubject(), new RBBST<Date, SuperTweet>());
+			tweetTable.get(subject).put(t.getCreatedAt(), t);
+		}
 	}
 	
 	// Return all SuperTweets with a given subject between a start and end Date as an Iterable
 	public Iterable<SuperTweet> getTweets(String subject, Date startDate, Date endDate)
 	{
 		Queue<SuperTweet> q = new Queue<SuperTweet>();
-		RBBST<Date, SuperTweet> tree = hashTable[subject.hashCode() % size];
+		RBBST<Date, SuperTweet> tree = tweetTable.get(subject);
 		for (Date d : tree.keys(startDate, endDate))
 		{
 			q.enqueue(tree.get(d));
@@ -39,16 +47,16 @@ public class TweetHashTable implements java.io.Serializable
 	}
 	
 	// Load a TweetHashTable from a given filename
-	public static TweetHashTable load(String filename)
+	public static TweetTable load(String filename)
 	{
-		TweetHashTable tweetTable = null;
+		TweetTable tweetTable = null;
 		FileInputStream superTweetInputStream = null;
         ObjectInputStream superTweetReader = null;
         try {
         	superTweetInputStream = new FileInputStream(filename);
 		} catch (FileNotFoundException e1) {
-			System.err.println(filename + " was not found.\n Initializing to new TweetHashTable of size 10,000.");
-			return new TweetHashTable(10000);
+			System.err.println(filename + " was not found.\n Initializing to new TweetTable");
+			return new TweetTable();
 		}
         try {
 			superTweetReader = new ObjectInputStream(superTweetInputStream);
@@ -57,7 +65,7 @@ public class TweetHashTable implements java.io.Serializable
 			return null;
 		}
         try {
-			tweetTable = (TweetHashTable)superTweetReader.readObject();
+			tweetTable = (TweetTable)superTweetReader.readObject();
 		} catch (IOException e2) {
 			System.err.println("Unable to Read " + filename);
 			return null;

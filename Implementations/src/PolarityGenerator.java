@@ -133,8 +133,8 @@ public class PolarityGenerator
 				}
 				catch (InputMismatchException e)
 				{
-					System.out.println("\nIllegal input. Please try again.");
-					continue;
+					System.out.println("\nIllegal input. Aborting.");
+					vote = 0;
 				}
 				if (vote == 0)
 				{
