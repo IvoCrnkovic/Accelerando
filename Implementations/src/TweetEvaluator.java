@@ -25,10 +25,36 @@ public class TweetEvaluator {
 			System.err.println("ClassNotFoundException: Unable to load TST from " + tstFilename);
 		}
 	}
+	
+	/**
+	 * Method for calculating polarization of a tweet.
+	 * 
+	 * <p>
+	 * Algorithm is as follows:
+	 * Total Sentiment = return pSent * (sSent + wSent) / 2, where pSent is the punctuation sentiment, sSent is the smiley sentiment and wSent is the word sentiment.
+	 * pSent is calculated as a multiplier based off the number of exclamation points or question points in the text of the tweet.
+	 * sSent is calculated by assigning positive or negative values to the different parts of smileys and then adding them together.
+	 * wSent is calculated as an average of the word sentiment of each word in the tweet text.
+
+	 * 
+	 * @param tweet the tweet to analyze
+	 * @return A double representing the total polarization of the tweet.
+	 */
 	public double calculatePolarization(Tweet tweet) {
 		return determineSentiment(tweet.getText());
 	}
 	
+	
+	/**
+	 *Method for calculating the weight (importance) of any given tweet.
+	 *
+	 *<p>
+	 *The weight is equal to the base 10 logarithm of the sum of the followers and listed count.
+	 *
+	 * @param tweet The tweet to analyze.
+	 * @return A double representing the weight of the tweet.
+	 * @throws TwitterException
+	 */
 	public double calculateWeight(Tweet tweet) throws TwitterException {
 		String username = tweet.getFromUser();
         User user = new TwitterFactory().getInstance().showUser(username);
