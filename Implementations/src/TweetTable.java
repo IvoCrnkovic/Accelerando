@@ -76,10 +76,21 @@ public class TweetTable implements java.io.Serializable
 	}
 	
 	/**
-	 * Method to load a hashtable from a file.
+	 * Returns the RBBST associated with a given subject
+	 * @param subject The subject of the tweets
+	 * @return the RBBST associated with subject
+	 */
+	public RBBST<Date, SuperTweet> getRBBST(String subject) 
+	{
+		return tweetTable.get(subject);
+	}
+	
+	
+	/**
+	 * Method to load a TweetTable from a file.
 	 * 
 	 * <p>
-	 * Uses object serialization to read hashtables from files.
+	 * Uses object serialization to read TweetTables from files.
 	 * 
 	 * 
 	 * @param filename The name of the file to read from.
@@ -105,20 +116,20 @@ public class TweetTable implements java.io.Serializable
         try {
 			tweetTable = (TweetTable)superTweetReader.readObject();
 		} catch (IOException e2) {
-			System.err.println("Unable to Read " + filename);
+			System.err.println("IOException: Unable to Read " + filename);
 			return null;
 		} catch (ClassNotFoundException e2) {
-			System.err.println("Unable to Read " + filename);
+			System.err.println("ClassNotFoundException: Unable to Read " + filename);
 			return null;
 		}
         return tweetTable;
 	}
 	
 	/**
-	 * Method to save a hashtable to disk in a file.
+	 * Method to save a TweetTable to disk in a file.
 	 * 
 	 * <p>
-	 * Uses object serialization the write the hashtable to a file.
+	 * Uses object serialization the write the TweetTable to a file.
 	 * 
 	 * 
 	 * @param filename The name of the file to write to or create if it does not already exist.

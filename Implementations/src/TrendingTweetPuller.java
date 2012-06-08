@@ -7,6 +7,8 @@
 import java.util.*;
 import java.io.*;
 import twitter4j.*;
+import twitter4j.auth.AccessToken;
+import twitter4j.conf.ConfigurationBuilder;
 
 public class TrendingTweetPuller {
 	public static void main(String[] args) throws TwitterException {
@@ -17,20 +19,41 @@ public class TrendingTweetPuller {
 		// Number of tweets from each subject to pull
 		final int tweetsToPull = 10;
 		
+		
+		// Authenticate
+		final String user = "turtleman755";
+		final String password = "accelerando";
+		final String consumerKey = "bceUVDFbpUh2pcu6gvpp9w";
+		final String consumerSecret = "pvei5cAMJgy5qXQPjuyyki508ZxHPM6ypRJt94OW9sY";
+		final String token = "17186983-6cc4E3GPsn1aFNrMsr5qJKpm8a0mxFl8ozsmUP43t";
+		final String tokenSecret = "p4Sc5WrSdSL2R4cUxqal86QRosbW5txbFQYF5ItOow";
+		ConfigurationBuilder cb = new ConfigurationBuilder();
+        cb.setDebugEnabled(true);
+        cb.setUser(user);
+        cb.setPassword(password);
+        cb.setOAuthConsumerKey(consumerKey);
+        cb.setOAuthConsumerSecret(consumerSecret);
+        cb.setOAuthAccessToken(token);
+        cb.setOAuthAccessTokenSecret(tokenSecret);
+        TwitterFactory tf = new TwitterFactory(cb.build());
+        Twitter twitter = tf.getInstance();
+		
+		
 		// Instance Variables
 		TweetTable tweetTable = null;
-		TwitterFactory twitterFactory = new TwitterFactory();
-        Twitter twitter = twitterFactory.getInstance();
+		
         ResponseList<Trends> trendsList;
         Query query;
         File superTweetsBackup = new File("superTweetsBackup.data");
         File superTweetsFile = new File(tweetFile);
         List<Tweet> tweets = null;
-    	int trendsListSize, hourlyTrendArraySize, resultsSize;
+    	int trendsListSize, hourlyTrendArraySize, resultsSize, numTweets = 0;
     	GregorianCalendar origin = new GregorianCalendar();
         tweetTable = TweetTable.load(tweetFile);
     	Date nextUpdate;
     	TweetEvaluator tweetEvaluator = new TweetEvaluator(wordsFile);
+    	
+    	
     	
     	
     	for(;;)
@@ -71,12 +94,15 @@ public class TrendingTweetPuller {
 			        }
 					resultsSize = tweets.size();
 					for(int k = 0; k < resultsSize; k++)
+					{
+						numTweets++;
 						tweetTable.add(new SuperTweet(tweets.get(k), trendName, tweetEvaluator));
+					}
 				}
 	        }
 	        
 	        
-	        System.out.print("Done.\nSaving Tweets... ");
+	        System.out.print("Done.\n" + numTweets + " Tweets Collected.\nSaving Tweets... ");
 	        tweetTable.save(tweetFile);
 	        System.out.println("Done.\nNext Update at " + origin.getTime().toString());
 	        

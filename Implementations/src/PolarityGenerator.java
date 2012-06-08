@@ -20,7 +20,7 @@ public class PolarityGenerator
 		String[] allTweets;
 		double vote = 0;
 		String current;
-		Value v;
+		PolarityValue v;
 		Scanner in = null;
 		Scanner stdIn = new Scanner(System.in);
 		scoreSheet userScores;
@@ -39,7 +39,7 @@ public class PolarityGenerator
 		}
 		
 		// Load TST from file
-		TST<Value> words = (TST<Value>)TST.load(new File("words.tst"));
+		TST<PolarityValue> words = (TST<PolarityValue>)TST.load(new File("words.tst"));
 		
 		if (words == null)
 		{
@@ -198,7 +198,7 @@ public class PolarityGenerator
 				if (tokens[i].length() == 0 || tokens[i] == null)
 					continue;
 				if (!words.contains(tokens[i]))
-					words.put(tokens[i], new Value(0., 5));
+					words.put(tokens[i], new PolarityValue(0., 5));
 				v = words.get(tokens[i]);
 				// Change Value Accordingly
 				v.setScore((v.getScore() * v.getOccurrences() + vote) / (v.getOccurrences() + 1));

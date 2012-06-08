@@ -71,7 +71,15 @@ public class SuperTweet implements Tweet, java.io.Serializable{
 		try {
 			weight = eval.calculateWeight(tweet);
 		} catch (TwitterException e) {
+			
 			System.err.println("TwitterException: Unable to Calculate Tweet Weight. Initializing to default value (0).");
+			if(e.isErrorMessageAvailable())
+				System.err.println(e.getErrorMessage());
+			if (e.exceededRateLimitation())
+			{
+				System.err.println("Current Hourly Limit: " + e.getRateLimitStatus().getHourlyLimit());
+				System.err.println("Reset Time: " + e.getRateLimitStatus().getResetTime());
+			}
 		}
 		vote = 0;
 	}

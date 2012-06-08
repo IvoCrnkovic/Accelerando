@@ -4,7 +4,7 @@
  * <p>
  * Stores the score (polarity) of a word and its number of occurrences
  */
-public  class Value implements java.io.Serializable
+public  class PolarityValue implements java.io.Serializable
 {
 	/**
 	 * Int storing the number of times the word has appeared in our voting system.
@@ -23,7 +23,7 @@ public  class Value implements java.io.Serializable
 	 * @param newScore The score field of the new Value.
 	 * @param newOccurences The occurences field of the new Value.
 	 */
-	public Value(double newScore, int newOccurences) {
+	public PolarityValue(double newScore, int newOccurences) {
 		score = newScore;
 		occurrences = newOccurences;	
 	}

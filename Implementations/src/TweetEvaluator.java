@@ -9,7 +9,7 @@ import twitter4j.*;
  */
 public class TweetEvaluator {
 	
-	TST<Value> wordPolarities = null;
+	TST<PolarityValue> wordPolarities = null;
 	
 	/**
 	 * Constructor Method.
@@ -18,7 +18,7 @@ public class TweetEvaluator {
 	public TweetEvaluator(String tstFilename)
 	{
 		try {
-			wordPolarities = (TST<Value>)TST.load(new File(tstFilename));
+			wordPolarities = (TST<PolarityValue>)TST.load(new File(tstFilename));
 		} catch (IOException e) {
 			System.err.println("IOException: Unable to load TST from " + tstFilename);
 		} catch (ClassNotFoundException e) {
@@ -151,11 +151,15 @@ public class TweetEvaluator {
 	private double wordSentiment(String[] words)
 	{
 		double totalWordSentiment = 0;
-		for (int i = 0; i < words.length;i++)
+		String word;
+		for (int i = 0; i < words.length; i++)
 		{
-			System.out.println(wordPolarities.get(words[i]));
+			word = words[i];
+			if (word != null && word.length() != 0 && wordPolarities.contains(word))
+				totalWordSentiment += wordPolarities.get(word).getScore();
 		}
-		
+		if (words.length != 0)
+			totalWordSentiment /= words.length;
 		
 		return totalWordSentiment;
 	}
@@ -178,7 +182,7 @@ public class TweetEvaluator {
 				punctuation[1]++;
 		}
 		double total = punctuation[0] + punctuation[1] + 1;
-		return (punctuation[0]+.5)/total;
+		return (punctuation[0] + .5) / total;
 	}
 	
 	private double determineSentiment(String text)
@@ -188,6 +192,6 @@ public class TweetEvaluator {
 		double pSent = punctuationSentiment(text);
 		double wSent = wordSentiment(tweetToArray(text));
 		
-		return pSent * (sSent + wSent) / 2;
+		return (1 + pSent * .3) * (sSent * .35 + wSent * .65);
 	}
 }
