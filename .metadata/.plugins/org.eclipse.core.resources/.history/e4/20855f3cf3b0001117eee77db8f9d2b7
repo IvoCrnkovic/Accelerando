@@ -1,0 +1,133 @@
+/************************************************************************
+ * Program to add Trending Tweets to a SuperTweet Symbol Table every Hour
+ * Written by Antonio Juliano and Brendan Chou
+ ***********************************************************************
+ */
+
+import java.util.*;
+import java.io.*;
+import twitter4j.*;
+
+public class TrendingTweetPuller {
+	public static void main(String[] args) throws TwitterException {
+		// Files to Load From
+		String tweetFile = "superTweets.data";
+		String wordsFile = "words.tst";
+		
+		// Number of tweets from each subject to pull
+		final int tweetsToPull = 10;
+		
+		// Instance Variables
+		TweetHashTable tweetTable = null;
+		TwitterFactory twitterFactory = new TwitterFactory();
+        Twitter twitter = twitterFactory.getInstance();
+        ResponseList<Trends> trendsList;
+        Query query;
+        File superTweetsBackup = new File("superTweetsBackup.data");
+        File superTweetsFile = new File(tweetFile);
+        List<Tweet> tweets = null;
+    	int trendsListSize, hourlyTrendArraySize, resultsSize;
+    	GregorianCalendar origin = new GregorianCalendar();
+        tweetTable = TweetHashTable.load(tweetFile);
+    	Date nextUpdate;
+    	TweetEvaluator tweetEvaluator = new TweetEvaluator(wordsFile);
+    	
+    	for(;;)
+    	{
+    		// Create Backup
+    		System.out.print("Backing Up... ");
+    		backupTweets(superTweetsFile, superTweetsBackup);
+    		System.out.println("Done.");
+    		
+    		
+    		// Calculate Next Update Time
+    		origin.add(Calendar.HOUR_OF_DAY, 1);
+    		nextUpdate = origin.getTime();
+    		
+    		
+    		// Gather Tweets
+    		trendsList = twitter.getDailyTrends();
+	        trendsListSize = trendsList.size();
+	        System.out.print("Assimilating Tweets... ");
+	        for(int i = 0; i < trendsListSize; i++)
+	        {
+	        	Trends hourlyTrends = trendsList.get(i);
+				Trend[] hourlyTrendArray = hourlyTrends.getTrends();
+				hourlyTrendArraySize = hourlyTrendArray.length;
+				for(int j = 0; j < hourlyTrendArraySize; j++)
+				{
+					String trendName = hourlyTrendArray[j].getName();
+					query = new Query(trendName);
+			        query.setRpp(tweetsToPull);
+			        query.setLang("en");
+			        try
+			        {
+			        	tweets = twitter.search(query).getTweets();
+			        }
+			        catch (TwitterException e)
+			        {
+			        	continue;
+			        }
+					resultsSize = tweets.size();
+					for(int k = 0; k < resultsSize; k++)
+						tweetTable.add(new SuperTweet(tweets.get(k), trendName, tweetEvaluator));
+				}
+	        }
+	        
+	        
+	        System.out.print("Done.\nSaving Tweets... ");
+	        tweetTable.save(tweetFile);
+	        System.out.println("Done.\nNext Update at " + origin.getTime().toString());
+	        
+	        
+	        // Wait Until Next Update Time
+	        while(new Date().before(nextUpdate))
+	        {
+	        	try {
+					Thread.sleep(10000);
+				} catch (InterruptedException e) {
+					System.err.println("Interrupted");
+				}
+	        }
+    	}
+	}
+	
+	// Backup the TweetHashTable data structure from superTweetsFile to superTweetsBackup
+	private static void backupTweets(File superTweetsFile, File superTweetsBackup)
+	{
+        FileInputStream tweetIn = null;
+        FileOutputStream backupOut = null;
+        byte[] buf = new byte[1024];
+		try
+		{
+    		superTweetsBackup.delete();
+    		try {
+				superTweetsBackup.createNewFile();
+			} catch (IOException e1) {
+				System.err.println("Unable to Create Backup");
+			}
+    		try {
+				backupOut = new FileOutputStream(superTweetsBackup);
+			} catch (FileNotFoundException e2) {
+				System.err.println("Unable to Initialize Backup Output Stream");
+			}
+    		try {
+				tweetIn = new FileInputStream(superTweetsFile);
+			} catch (FileNotFoundException e1) {
+				System.err.println("Unable to Initialize Backup Input Stream from " + superTweetsFile);
+			}
+    		int len;
+    		while ((len = tweetIn.read(buf)) > 0){
+    			backupOut.write(buf, 0, len);
+    		}
+			backupOut.flush();
+			backupOut.close();
+		}
+		catch (NullPointerException e1)
+		{
+			System.err.println("Backup Failed");
+		} catch (IOException e) {
+			System.err.println("Backup Failed");
+		}
+	}
+}

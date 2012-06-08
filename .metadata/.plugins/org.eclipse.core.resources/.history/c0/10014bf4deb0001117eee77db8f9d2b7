@@ -1,0 +1,132 @@
+import java.util.*;
+import twitter4j.*;
+
+public class SuperTweet implements Tweet, java.io.Serializable{
+	private static final long serialVersionUID = 1L;
+	private final Tweet tweet;
+	private final String subject;
+	private final double polarization;
+	private final double weight;
+	
+	public SuperTweet(Tweet newTweet, String newSubject)
+	{
+		tweet = newTweet;
+		subject = newSubject;
+		//FIXME Change back
+		/*
+		polarization = TweetEvaluator.calculatePolarization(tweet);
+		weight = TweetEvaluator.calculateWeight(tweet);
+		*/
+		polarization = 0;
+		weight = 1;
+	}
+
+	@Override
+	public int compareTo(Tweet o) {
+		return tweet.compareTo(o);
+	}
+
+	@Override
+	public HashtagEntity[] getHashtagEntities() {
+		return tweet.getHashtagEntities();
+	}
+
+	@Override
+	public MediaEntity[] getMediaEntities() {
+		return tweet.getMediaEntities();
+	}
+
+	@Override
+	public URLEntity[] getURLEntities() {
+		return tweet.getURLEntities();
+	}
+
+	@Override
+	public UserMentionEntity[] getUserMentionEntities() {
+		return tweet.getUserMentionEntities();
+	}
+
+	@Override
+	public Annotations getAnnotations() {
+		return tweet.getAnnotations();
+	}
+
+	@Override
+	public Date getCreatedAt() {
+		return tweet.getCreatedAt();
+	}
+
+	@Override
+	public String getFromUser() {
+		return tweet.getFromUser();
+	}
+
+	@Override
+	public long getFromUserId() {
+		return tweet.getFromUserId();
+	}
+
+	@Override
+	public GeoLocation getGeoLocation() {
+		return tweet.getGeoLocation();
+	}
+
+	@Override
+	public long getId() {
+		return tweet.getId();
+	}
+
+	@Override
+	public String getIsoLanguageCode() {
+		return tweet.getIsoLanguageCode();
+	}
+
+	@Override
+	public String getLocation() {
+		return tweet.getLocation();
+	}
+
+	@Override
+	public Place getPlace() {
+		return tweet.getPlace();
+	}
+	
+	public double getPolarization() {
+		return polarization;
+	}
+
+	@Override
+	public String getProfileImageUrl() {
+		return tweet.getProfileImageUrl();
+	}
+
+	@Override
+	public String getSource() {
+		return tweet.getSource();
+	}
+	
+	public String getSubject()
+	{
+		return subject;
+	}
+
+	@Override
+	public String getText() {
+		return tweet.getText();
+	}
+
+	@Override
+	public String getToUser() {
+		return tweet.getToUser();
+	}
+
+	@Override
+	public long getToUserId() {
+		return tweet.getToUserId();
+	}
+	
+	public double getWeight() {
+		return weight;
+	}
+
+}

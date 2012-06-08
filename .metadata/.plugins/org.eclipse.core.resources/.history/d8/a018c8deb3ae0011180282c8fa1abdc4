@@ -1,0 +1,14 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Scanner;
+public class addToIgnoredWords 
+{
+	TST<Double> ignore = TST.load(new File("ignore.tst"));
+	Scanner in = new Scanner(System.in);
+	String s;
+	for (;;)
+	{
+		s = in.next();
+		
+	}
+}

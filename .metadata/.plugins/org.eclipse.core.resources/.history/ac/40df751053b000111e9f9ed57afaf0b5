@@ -1,0 +1,18 @@
+import java.util.*;
+import java.io.*;
+public class test { 
+	public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException
+	{
+		GregorianCalendar origin = new GregorianCalendar();
+		Date d = new Date();
+		Date n;
+		for(;;)
+		{
+			origin.roll(Calendar.MINUTE, true);
+			n = origin.getTime();
+			System.out.println("here");
+			while(d.before(n))
+				Thread.sleep(100);
+		}
+	}
+}

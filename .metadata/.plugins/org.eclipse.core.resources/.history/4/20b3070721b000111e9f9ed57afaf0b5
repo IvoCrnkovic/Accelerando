@@ -1,0 +1,13 @@
+import java.util.Date;
+public class TweetHashTable implements java.io.Serializable
+{
+	private static final long serialVersionUID = 1L;
+	private RBBST<Date, SuperTweet>[] hashTable;
+	public TweetHashTable(int size)
+	{
+		hashTable = (RBBST<Date, SuperTweet>[])new Object[size];
+		for (int i = 0; i < size; i++)
+			hashTable[i] = new RBBST<>()
+	}
+	public void add
+}

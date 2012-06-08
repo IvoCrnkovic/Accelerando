@@ -1,0 +1,32 @@
+import java.util.Date;
+public class TweetHashTable implements java.io.Serializable
+{
+	private static final long serialVersionUID = 1L;
+	private RBBST[] hashTable;
+	private int size;
+	public TweetHashTable(int size)
+	{
+		this.size = size;
+		hashTable = new RBBST[size];
+		for (int i = 0; i < size; i++)
+			hashTable[i] = new RBBST<Date, SuperTweet>();
+	}
+	
+	// Add a SuperTweet to the table
+	public void add(SuperTweet t)
+	{
+		hashTable[t.getSubject().hashCode() % size].put(t.getCreatedAt(), t);
+	}
+	
+	// Return all SuperTweets with a given subject between a start and end Date
+	public Iterable<SuperTweet> getTweets(String subject, Date startDate, Date endDate)
+	{
+		Queue<SuperTweet> q = new Queue<SuperTweet>();
+		RBBST<Date, SuperTweet> tree = hashTable[subject.hashCode() % size];
+		for (Date d : tree.keys(startDate, endDate))
+		{
+			q.enqueue(tree.get(d));
+		}
+		return q;
+	}
+}

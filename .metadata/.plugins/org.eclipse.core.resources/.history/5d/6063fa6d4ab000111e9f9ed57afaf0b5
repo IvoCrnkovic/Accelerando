@@ -1,0 +1,47 @@
+import java.util.*;
+import java.io.*;
+public class test { 
+	public static void main(String[] args)
+	{
+		TweetHashTable t = new TweetHashTable(100);
+		FileOutputStream f = null;
+		try {
+			f = new FileOutputStream("superTweets.twt");
+		} catch (FileNotFoundException e) {
+			System.err.println("7");
+		}
+		ObjectOutputStream o = null;
+		FileInputStream i = null;
+		ObjectInputStream p = null;
+		try {
+			 o = new ObjectOutputStream(f);
+		} catch (IOException e) {
+			System.err.println("6");
+		}
+		try {
+			o.writeObject(t);
+		} catch (IOException e) {
+			System.err.println("1");
+		}
+		try {
+			i = new FileInputStream("superTweets.twt");
+		} catch (FileNotFoundException e1) {
+			System.err.println("2");
+		}
+		try {
+			p = new ObjectInputStream(i);
+		} catch (IOException e) {
+			System.err.println("3");
+		}
+		TweetHashTable y = null;
+		try {
+			y = (TweetHashTable)p.readObject();
+		} catch (IOException e) {
+			System.err.println("5");
+		} catch (ClassNotFoundException e) {
+			System.err.println("4");
+		}
+		if (t.equals(y))
+			System.out.println("success");
+	}
+}

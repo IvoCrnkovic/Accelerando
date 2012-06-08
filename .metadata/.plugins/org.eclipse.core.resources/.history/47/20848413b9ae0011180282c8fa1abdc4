@@ -1,0 +1,34 @@
+import java.io.File;
+import java.io.IOException;
+import java.util.Scanner;
+public class addToIgnoredWords 
+{
+	public static void main(String[] args)
+	{
+		File f = new File("ignore.tst");
+		try {
+			f.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		File w = new File("words.tst");
+		try {
+			w.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		TST<Double> ignore = TST.load(f);
+		Scanner in = new Scanner(System.in);
+		String s;
+		for (;;)
+		{
+			s = in.next();
+			if (s.equals("exit"))
+			{
+				ignore.save(new File("ignore.tst"));
+				System.exit(0);
+			}
+			ignore.put(s, 0.);
+		}
+	}
+}

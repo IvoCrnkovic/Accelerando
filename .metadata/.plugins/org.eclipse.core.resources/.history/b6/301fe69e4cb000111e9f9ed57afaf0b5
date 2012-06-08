@@ -1,0 +1,79 @@
+import java.util.*;
+import java.io.*;
+public class test { 
+	public static void main(String[] args) throws IOException, ClassNotFoundException
+	{
+		TweetHashTable myObject = new TweetHashTable(100);
+		// Use a FileOutputStream to send data to a file
+		// called myobject.data.
+		FileOutputStream f_out = new
+		FileOutputStream ("myobject.data");
+		// Use an ObjectOutputStream to send object data to the
+		// FileOutputStream for writing to disk.
+		ObjectOutputStream obj_out = new
+		ObjectOutputStream (f_out);
+		// Pass our object to the ObjectOutputStream's
+		// writeObject() method to cause it to be written out
+		// to disk.
+		obj_out.writeObject (myObject);
+		// Read from disk using FileInputStream.
+		FileInputStream f_in = new
+		FileInputStream ("myobject.data");
+		// Read object using ObjectInputStream.
+		ObjectInputStream obj_in = new ObjectInputStream (f_in);
+		// Read an object.
+		Object obj = obj_in.readObject ();
+		// Is the object that you read in, say, an instance
+		// of the Vector class?
+		if (obj instanceof TweetHashTable)
+		{
+		// Cast object to a Vector
+			TweetHashTable vec = (TweetHashTable) obj;
+		// Do something with vector ...
+			myObject.add(new SuperTweet(null, "test"));
+		}
+		/*
+		 * 
+		TweetHashTable t = new TweetHashTable(100);
+		FileOutputStream f = null;
+		try {
+			f = new FileOutputStream("superTweets.twt");
+		} catch (FileNotFoundException e) {
+			System.err.println("7");
+		}
+		ObjectOutputStream o = null;
+		FileInputStream i = null;
+		ObjectInputStream p = null;
+		try {
+			 o = new ObjectOutputStream(f);
+		} catch (IOException e) {
+			System.err.println("6");
+		}
+		try {
+			o.writeObject(t);
+		} catch (IOException e) {
+			System.err.println("1");
+		}
+		try {
+			i = new FileInputStream("superTweets.twt");
+		} catch (FileNotFoundException e1) {
+			System.err.println("2");
+		}
+		try {
+			p = new ObjectInputStream(i);
+		} catch (IOException e) {
+			System.err.println("3");
+		}
+		TweetHashTable y = null;
+		try {
+			y = (TweetHashTable)p.readObject();
+		} catch (IOException e) {
+			System.err.println("5");
+		} catch (ClassNotFoundException e) {
+			System.err.println("4");
+		}
+		if (t.equals(y))
+			System.out.println("success");
+		y.add(new SuperTweet(null, "test"));*/
+	}
+}

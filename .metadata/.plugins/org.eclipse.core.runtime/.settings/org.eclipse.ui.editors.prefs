@@ -1,0 +1,11 @@
+#Mon Jun 04 21:30:21 EDT 2012
+net.sf.eclipsecs.warning.text.style=NONE
+occurrenceIndication=true
+overrideIndicatorInVerticalRuler=false
+infoIndicationInOverviewRuler=false
+eclipse.preferences.version=1
+infoIndicationInVerticalRuler=false
+occurrenceHighlighting=false
+occurrenceTextStyle=UNDERLINE
+occurrenceIndicationColor=255,0,128
+overviewRuler_migration=migrated_3.1
