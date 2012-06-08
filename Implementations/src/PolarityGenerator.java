@@ -133,8 +133,8 @@ public class PolarityGenerator
 				}
 				catch (InputMismatchException e)
 				{
-					System.out.println("\nIllegal input. Aborting");
-					vote = 0;
+					System.out.println("\nIllegal input. Please try again.");
+					continue;
 				}
 				if (vote == 0)
 				{
@@ -142,7 +142,7 @@ public class PolarityGenerator
 					try {
 						writer = new PrintStream(new File("tweets.txt"));
 					} catch (FileNotFoundException e) {
-						System.err.println("Failed to write remaining tweets");
+						System.out.println("Failed to write remaining tweets");
 					}
 					for (;k < tweets.length; k++)
 					{
@@ -188,7 +188,7 @@ public class PolarityGenerator
 				voteWriter.write(tweets[k] + "\n" + vote + "\n");
 				voteWriter.flush();
 			} catch (IOException e) {
-				System.err.println("Unable to write vote");
+				System.out.println("Unable to write vote");
 			}
 			
 			
@@ -208,7 +208,7 @@ public class PolarityGenerator
 	}
 	
 	// Save User Voting Statistics
-	private static void writeStats(scoreSheet s)
+	public static void writeStats(scoreSheet s)
 	{
 		PrintStream stats;
 		Scanner statsReader;
@@ -259,7 +259,7 @@ public class PolarityGenerator
 	}
 
 	// Load User Voting Statistics
-	private static scoreSheet readStats(String user)
+	public static scoreSheet readStats(String user)
 	{
 		Scanner stats;
 		String current;
@@ -280,8 +280,6 @@ public class PolarityGenerator
 		}
 			return null;
 	}
-	
-	
 	// Stores User Voting Statistics
 	private static class scoreSheet
 	{
