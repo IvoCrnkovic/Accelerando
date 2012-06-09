@@ -1,7 +1,3 @@
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
-
 import twitter4j.*;
 
 /**
@@ -10,20 +6,15 @@ import twitter4j.*;
 public class TweetEvaluator {
 	
 	TST<PolarityValue> wordPolarities = null;
-	
+	TST<SuperUser> users = null;
 	/**
 	 * Constructor Method.
 	 * @param tstFilename The filename where the .tst file with serialized TST can be found to 
 	 */
-	public TweetEvaluator(String tstFilename)
+	public TweetEvaluator(TST<PolarityValue> wordPolarities, TST<SuperUser> users)
 	{
-		try {
-			wordPolarities = (TST<PolarityValue>)TST.load(new File(tstFilename));
-		} catch (IOException e) {
-			System.err.println("IOException: Unable to load TST from " + tstFilename);
-		} catch (ClassNotFoundException e) {
-			System.err.println("ClassNotFoundException: Unable to load TST from " + tstFilename);
-		}
+		this.wordPolarities = wordPolarities;
+		this.users = users;
 	}
 	
 	/**
@@ -55,6 +46,7 @@ public class TweetEvaluator {
 	 * @throws TwitterException
 	 */
 	public double calculateWeight(Tweet tweet) throws TwitterException {
+		/*FIXME Change Back
 		String username = tweet.getFromUser();
         User user = new TwitterFactory().getInstance().showUser(username);
         long numFollowers= user.getFollowersCount();
@@ -62,6 +54,8 @@ public class TweetEvaluator {
         double total = numFollowers + numListed;
         
         return Math.log10(total+2);
+        */
+		return 1;
 	}
 	
 	private String removeFluff(String text)
@@ -162,12 +156,6 @@ public class TweetEvaluator {
 			totalWordSentiment /= words.length;
 		
 		return totalWordSentiment;
-	}
-	
-	private double getWordPolarity(String word)
-	{
-		double polarity = 0;
-		return polarity;
 	}
 	
 	private double punctuationSentiment(String text)

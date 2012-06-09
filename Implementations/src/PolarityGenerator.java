@@ -1,8 +1,6 @@
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.util.Scanner;
 import java.util.InputMismatchException;
 import java.io.PrintStream;
@@ -11,8 +9,10 @@ public class PolarityGenerator
 {
 	static File statisticsFile;
 	static final int NUM_STATS = 5;
+	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws IOException, ClassNotFoundException
 	{
+		final String wordsFilename = "words.tst";
 		String[] tokens;
 		String[] tweets;
 		String[] subjects;
@@ -26,10 +26,10 @@ public class PolarityGenerator
 		scoreSheet userScores;
 		String user;
 		FileWriter voteWriter = null;
-		
+		TST<PolarityValue> words = null;
+		Object obj = null;
 		
 		//Create files if do not exist
-		File wordsFile = new File("words.tst");
 		statisticsFile = new File("statistics.txt");
 		try {
 			statisticsFile.createNewFile();
@@ -39,13 +39,33 @@ public class PolarityGenerator
 		}
 		
 		// Load TST from file
-		TST<PolarityValue> words = (TST<PolarityValue>)TST.load(new File("words.tst"));
-		
+		try
+		{
+			obj = ObjectLoader.load(wordsFilename);
+		}
+		catch (IOException e)
+		{
+			System.err.println("IOException: Failed to Load TST from + " + wordsFilename);
+			System.exit(0);
+		}
+		catch (ClassNotFoundException e)
+		{
+			System.err.println("ClassNotFoundException: Failed to Load TST from + " + wordsFilename);
+			System.exit(0);
+		}
+		if (obj instanceof TST<?>)
+			words = (TST<PolarityValue>)obj;
+		else
+		{
+			System.err.println("Class Mismatch: Could not load TST from " + wordsFilename);
+			System.exit(0);
+		}
 		if (words == null)
 		{
 			System.out.println("Failed to load words.tst");
 			System.exit(0);
 		}
+		
 		File voteFile = new File("votes.txt");
 		try {
 			voteWriter = new FileWriter(voteFile, true);
@@ -151,13 +171,13 @@ public class PolarityGenerator
 					}
 					writer.flush();
 					writer.close();
-					words.save(wordsFile);
+					ObjectLoader.save(words, wordsFilename);
 					writeStats(userScores);
 					System.exit(0);
 				} 
 				if (vote == 9)
 				{
-					words.save(wordsFile);
+					ObjectLoader.save(words, wordsFilename);
 					writeStats(userScores);
 					System.out.println("Save Successful");
 				}
