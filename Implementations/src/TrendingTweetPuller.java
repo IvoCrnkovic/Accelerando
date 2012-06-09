@@ -21,7 +21,6 @@ public class TrendingTweetPuller {
 		// Number of tweets from each subject to pull
 		final int tweetsToPull = 10;
 		
-		
 		// Authenticate
 		final String user = "turtleman755";
 		final String password = "accelerando";
@@ -40,8 +39,6 @@ public class TrendingTweetPuller {
         TwitterFactory tf = new TwitterFactory(cb.build());
         AccessToken accessToken = new AccessToken(token, tokenSecret);
         Twitter twitter = tf.getInstance(accessToken);
-		
-		
 		
 		// Instance Variables
 		TweetTable tweetTable = null;
