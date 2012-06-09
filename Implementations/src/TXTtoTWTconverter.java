@@ -28,7 +28,7 @@ public class TXTtoTWTconverter {
 			tst.put(subject, new PolarityValue(polarity, occurrences));
 		}
 		try {
-			tst.save(new File(tstFilename));
+			ObjectLoader.save(tst, tstFilename);
 		} catch (IOException e) {
 			System.err.println("Save Unsuccessful");
 		}

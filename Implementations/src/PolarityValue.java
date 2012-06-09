@@ -6,6 +6,8 @@
  */
 public  class PolarityValue implements java.io.Serializable
 {
+	private static final long serialVersionUID = -8523678818663343290L;
+
 	/**
 	 * Int storing the number of times the word has appeared in our voting system.
 	 */

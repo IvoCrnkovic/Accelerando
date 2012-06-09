@@ -7,7 +7,6 @@
 import java.util.*;
 import java.io.*;
 import twitter4j.*;
-import twitter4j.auth.AccessToken;
 import twitter4j.conf.ConfigurationBuilder;
 
 public class TrendingTweetPuller {
@@ -41,7 +40,7 @@ public class TrendingTweetPuller {
 		
 		// Instance Variables
 		TweetTable tweetTable = null;
-		
+		Date nextUpdate;
         ResponseList<Trends> trendsList;
         Query query;
         File superTweetsBackup = new File("superTweetsBackup.data");
@@ -49,13 +48,28 @@ public class TrendingTweetPuller {
         List<Tweet> tweets = null;
     	int trendsListSize, hourlyTrendArraySize, resultsSize, numTweets = 0;
     	GregorianCalendar origin = new GregorianCalendar();
-        tweetTable = TweetTable.load(tweetFile);
-    	Date nextUpdate;
-    	TweetEvaluator tweetEvaluator = new TweetEvaluator(wordsFile);
+    	TST<SuperUser> users = null;
+    	TST<PolarityValue> wordPolarities = null;
+    	TweetEvaluator tweetEvaluator;
+    	
+    	
+    	// Load From File
+        try {
+			tweetTable = (TweetTable)ObjectLoader.load(tweetFile);
+		} catch (FileNotFoundException e3) {
+			System.err.println("FileNotFoundException: Failed to load TweetTable from " + tweetFile);
+		} catch (IOException e3) {
+			System.err.println("IOException: Failed to load TweetTable from " + tweetFile);
+		} catch (ClassNotFoundException e3) {
+			System.err.println("ClassNotFoundException: Failed to load TweetTable from " + tweetFile);
+		}
+        wordPolarities = ()
+    	
+    	tweetEvaluator = new TweetEvaluator(wordPolarities, users);
     	
     	
     	
-    	
+    	// Process Loop
     	for(;;)
     	{
     		// Create Backup
@@ -103,7 +117,13 @@ public class TrendingTweetPuller {
 	        
 	        
 	        System.out.print("Done.\n" + numTweets + " Tweets Collected.\nSaving Tweets... ");
-	        tweetTable.save(tweetFile);
+	        try {
+				ObjectLoader.save(tweetTable, tweetFile);
+			} catch (FileNotFoundException e1) {
+				System.err.println("FileNotFoundException: Could not save TweetTable to " + tweetFile);
+			} catch (IOException e1) {
+				System.err.println("IOException: Could not save TweetTable to " + tweetFile);
+			}
 	        System.out.println("Done.\nNext Update at " + origin.getTime().toString());
 	        
 	        
@@ -118,6 +138,7 @@ public class TrendingTweetPuller {
 	        }
     	}
 	}
+	
 	
 	// Backup the TweetHashTable data structure from superTweetsFile to superTweetsBackup
 	private static void backupTweets(File superTweetsFile, File superTweetsBackup)
