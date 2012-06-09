@@ -7,13 +7,16 @@
 import java.util.*;
 import java.io.*;
 import twitter4j.*;
+import twitter4j.auth.AccessToken;
 import twitter4j.conf.ConfigurationBuilder;
 
 public class TrendingTweetPuller {
+	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws TwitterException {
 		// Files to Load From
 		String tweetFile = "superTweets.data";
 		String wordsFile = "words.tst";
+		String userFile = "users.data";
 		
 		// Number of tweets from each subject to pull
 		final int tweetsToPull = 10;
@@ -35,7 +38,9 @@ public class TrendingTweetPuller {
         cb.setOAuthAccessToken(token);
         cb.setOAuthAccessTokenSecret(tokenSecret);
         TwitterFactory tf = new TwitterFactory(cb.build());
-        Twitter twitter = tf.getInstance();
+        AccessToken accessToken = new AccessToken(token, tokenSecret);
+        Twitter twitter = tf.getInstance(accessToken);
+		
 		
 		
 		// Instance Variables
@@ -51,20 +56,69 @@ public class TrendingTweetPuller {
     	TST<SuperUser> users = null;
     	TST<PolarityValue> wordPolarities = null;
     	TweetEvaluator tweetEvaluator;
-    	
+    	Object obj = null;
     	
     	// Load From File
         try {
-			tweetTable = (TweetTable)ObjectLoader.load(tweetFile);
+			obj = ObjectLoader.load(tweetFile);
 		} catch (FileNotFoundException e3) {
 			System.err.println("FileNotFoundException: Failed to load TweetTable from " + tweetFile);
+			System.exit(0);
 		} catch (IOException e3) {
 			System.err.println("IOException: Failed to load TweetTable from " + tweetFile);
+			System.exit(0);
 		} catch (ClassNotFoundException e3) {
 			System.err.println("ClassNotFoundException: Failed to load TweetTable from " + tweetFile);
-		}
-        wordPolarities = ()
-    	
+			System.exit(0);
+		} 
+        if (obj instanceof TweetTable)
+        	tweetTable = (TweetTable) obj;
+        else
+        {
+        	System.err.println("Class Mismatch: Failed to load TweetTable from " + tweetFile);
+        	System.exit(0);
+        }
+        
+        try {
+			obj = ObjectLoader.load(wordsFile);
+		} catch (FileNotFoundException e3) {
+			System.err.println("FileNotFoundException: Failed to load Word Polarizations from " + wordsFile);
+			System.exit(0);
+		} catch (IOException e3) {
+			System.err.println("IOException: Failed to load Word Polarizations from " + wordsFile);
+			System.exit(0);
+		} catch (ClassNotFoundException e3) {
+			System.err.println("ClassNotFoundException: Failed to load Word Polarizations from " + wordsFile);
+			System.exit(0);
+		} 
+        if (obj instanceof TST<?>)
+        	wordPolarities = (TST<PolarityValue>) obj;
+        else
+        {
+        	System.err.println("Class Mismatch: Failed to load Word Polarizations from " + wordsFile);
+        	System.exit(0);
+        }
+        
+        try {
+			obj = ObjectLoader.load(userFile);
+		} catch (FileNotFoundException e3) {
+			System.err.println("FileNotFoundException: Failed to load User TST from " + userFile);
+			System.exit(0);
+		} catch (IOException e3) {
+			System.err.println("IOException: Failed to load User TST from " + userFile);
+			System.exit(0);
+		} catch (ClassNotFoundException e3) {
+			System.err.println("ClassNotFoundException: Failed to load User TST from " + userFile);
+			System.exit(0);
+		} 
+        if (obj instanceof TST<?>)
+        	users = (TST<SuperUser>) obj;
+        else
+        {
+        	System.err.println("Class Mismatch: Failed to load User TST from " + userFile);
+        	System.exit(0);
+        }
+        
     	tweetEvaluator = new TweetEvaluator(wordPolarities, users);
     	
     	
@@ -110,7 +164,7 @@ public class TrendingTweetPuller {
 					for(int k = 0; k < resultsSize; k++)
 					{
 						numTweets++;
-						tweetTable.add(new SuperTweet(tweets.get(k), trendName, tweetEvaluator));
+						tweetTable.add(new SuperTweet(tweets.get(k), trendName, tweetEvaluator, twitter));
 					}
 				}
 	        }

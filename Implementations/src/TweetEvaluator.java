@@ -45,17 +45,14 @@ public class TweetEvaluator {
 	 * @return A double representing the weight of the tweet.
 	 * @throws TwitterException
 	 */
-	public double calculateWeight(Tweet tweet) throws TwitterException {
-		/*FIXME Change Back
+	public double calculateWeight(Tweet tweet, Twitter twitter) throws TwitterException {
 		String username = tweet.getFromUser();
-        User user = new TwitterFactory().getInstance().showUser(username);
+        User user = twitter.showUser(username);
         long numFollowers= user.getFollowersCount();
         long numListed   = user.getListedCount();
         double total = numFollowers + numListed;
         
         return Math.log10(total+2);
-        */
-		return 1;
 	}
 	
 	private String removeFluff(String text)

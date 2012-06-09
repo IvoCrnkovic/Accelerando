@@ -1,4 +1,5 @@
 import twitter4j.Tweet;
+import twitter4j.Twitter;
 import twitter4j.TwitterException;
 
 /**
@@ -62,13 +63,13 @@ public class SuperTweet implements java.io.Serializable{
 	 * @see    Tweet
 	 */
 	
-	public SuperTweet(Tweet newTweet, String newSubject, TweetEvaluator eval)
+	public SuperTweet(Tweet newTweet, String newSubject, TweetEvaluator eval, Twitter t)
 	{
 		tweet = newTweet;
 		subject = newSubject;
 		polarization = eval.calculatePolarization(tweet);
 		try {
-			weight = eval.calculateWeight(tweet);
+			weight = eval.calculateWeight(tweet, t);
 		} catch (TwitterException e) {
 			
 			System.err.println("TwitterException: Unable to Calculate Tweet Weight. Initializing to default value (0).");
