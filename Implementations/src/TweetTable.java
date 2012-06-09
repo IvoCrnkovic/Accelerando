@@ -32,19 +32,17 @@ public class TweetTable implements java.io.Serializable
 	 * 
 	 * @param t The tweet to be added.
 	 */
-	public void add(SuperTweet t)
+	public void add(SuperTweet t, String subject)
 	{
-		String subject = t.getSubject();
 		if (subject == null | subject.length() == 0)
 		{
-			System.err.println("Subjectless Tweet: Was not Added to TweetTable");
 			return;
 		}
 		if (tweetTable.contains(subject))
 			tweetTable.get(subject).put(t.getTweet().getCreatedAt(), t);
 		else
 		{
-			tweetTable.put(t.getSubject(), new RBBST<Date, SuperTweet>());
+			tweetTable.put(subject, new RBBST<Date, SuperTweet>());
 			tweetTable.get(subject).put(t.getTweet().getCreatedAt(), t);
 		}
 	}
