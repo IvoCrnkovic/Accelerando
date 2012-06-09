@@ -14,9 +14,9 @@ public class TrendingTweetPuller {
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws TwitterException {
 		// Files to Load From
-		String tweetFile = "superTweets.data";
-		String wordsFile = "words.tst";
-		String userFile = "users.data";
+		final String tweetFile = "superTweets.data";
+		final String wordsFile = "words.tst";
+		final String userFile = "users.data";
 		
 		// Number of tweets from each subject to pull
 		final int tweetsToPull = 10;
