@@ -24,41 +24,20 @@ public class ObjectLoader {
 	
 	
 	// Backup the TweetHashTable data structure from superTweetsFile to superTweetsBackup
-	public static void backupTweets(File superTweetsFile, File superTweetsBackup)
+	public static void backupFile(File superTweetsFile, File superTweetsBackup) throws IOException, FileNotFoundException, NullPointerException 
 	{
 		FileInputStream tweetIn = null;
 		FileOutputStream backupOut = null;
 		byte[] buf = new byte[1024];
-		try
-		{
-			superTweetsBackup.delete();
-			try {
-				superTweetsBackup.createNewFile();
-			} catch (IOException e1) {
-				System.err.println("Unable to Create Backup");
-			}
-			try {
-				backupOut = new FileOutputStream(superTweetsBackup);
-			} catch (FileNotFoundException e2) {
-				System.err.println("Unable to Initialize Backup Output Stream");
-			}
-			try {
-				tweetIn = new FileInputStream(superTweetsFile);
-			} catch (FileNotFoundException e1) {
-				System.err.println("Unable to Initialize Backup Input Stream from " + superTweetsFile);
-			}
-			int len;
-			while ((len = tweetIn.read(buf)) > 0){
-				backupOut.write(buf, 0, len);
-			}
-			backupOut.flush();
-			backupOut.close();
+		superTweetsBackup.delete();
+		superTweetsBackup.createNewFile();
+		backupOut = new FileOutputStream(superTweetsBackup);
+		tweetIn = new FileInputStream(superTweetsFile);
+		int len;
+		while ((len = tweetIn.read(buf)) > 0){
+			backupOut.write(buf, 0, len);
 		}
-		catch (NullPointerException e1)
-		{
-			System.err.println("Backup Failed");
-		} catch (IOException e) {
-			System.err.println("Backup Failed");
-		}
+		backupOut.flush();
+		backupOut.close();
 	}
 }

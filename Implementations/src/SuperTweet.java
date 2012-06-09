@@ -21,13 +21,6 @@ public class SuperTweet implements java.io.Serializable{
 	private final Tweet tweet;
 	
 	/**
-	 *The search term that was used to get this particular tweet.
-	 *
-	 *@see SuperTweet.getSubject()
-	 */
-	private final String subject;
-	
-	/**
 	 *The calculated polarization of the superTweet.  Runs from -5 to 5, the larger number representing a more positive outlook on the subject.
 	 *
 	 *@see TweetEvaluator.calculatePolarization(Tweet tweet)
@@ -63,24 +56,11 @@ public class SuperTweet implements java.io.Serializable{
 	 * @see    Tweet
 	 */
 	
-	public SuperTweet(Tweet newTweet, String newSubject, TweetEvaluator eval, Twitter t)
+	public SuperTweet(Tweet newTweet, TweetEvaluator eval, Twitter t) throws TwitterException
 	{
 		tweet = newTweet;
-		subject = newSubject;
 		polarization = eval.calculatePolarization(tweet);
-		try {
-			weight = eval.calculateWeight(tweet, t);
-		} catch (TwitterException e) {
-			
-			System.err.println("TwitterException: Unable to Calculate Tweet Weight. Initializing to default value (0).");
-			if(e.isErrorMessageAvailable())
-				System.err.println(e.getErrorMessage());
-			if (e.exceededRateLimitation())
-			{
-				System.err.println("Current Hourly Limit: " + e.getRateLimitStatus().getHourlyLimit());
-				System.err.println("Reset Time: " + e.getRateLimitStatus().getResetTime());
-			}
-		}
+		weight = eval.calculateWeight(tweet, t);
 		vote = 0;
 	}
 
@@ -109,10 +89,6 @@ public class SuperTweet implements java.io.Serializable{
 		return tweet;
 	}
 	
-	public String getSubject()
-	{
-		return subject;
-	}
 	/**
 	 * Method to retrieve the weight of this superTweet.
 	 * <p>
@@ -141,5 +117,24 @@ public class SuperTweet implements java.io.Serializable{
 	public void setVote(int v)
 	{
 		vote = v;
+	}
+	public boolean equals(Object y)
+	{
+		if (y == this) return true;
+	    if (y == null) return false;
+	    if (y.getClass() != this.getClass())
+	       return false;
+	    SuperTweet that = (SuperTweet) y;
+	    if (this.polarization != that.polarization) return false;
+	    if (this.vote != that.vote) return false;
+	    if (this.weight != that.weight) return false;
+	    if (!this.tweet.equals(that.tweet)) return false;
+	    return true;
+	}
+	public int hashCode()
+	{
+		int hash = 13;
+		hash = 31 * hash + tweet.hashCode();
+	    return hash;
 	}
 }

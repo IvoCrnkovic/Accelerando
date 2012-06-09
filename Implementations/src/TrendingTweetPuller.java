@@ -10,6 +10,7 @@ import twitter4j.*;
 import twitter4j.auth.AccessToken;
 import twitter4j.conf.ConfigurationBuilder;
 
+//TODO Implement user table
 public class TrendingTweetPuller {
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws TwitterException {
@@ -48,12 +49,16 @@ public class TrendingTweetPuller {
         File superTweetsBackup = new File("superTweetsBackup.data");
         File superTweetsFile = new File(tweetFile);
         List<Tweet> tweets = null;
-    	int trendsListSize, hourlyTrendArraySize, resultsSize, numTweets = 0;
-    	GregorianCalendar origin = new GregorianCalendar();
+    	int trendsListSize, hourlyTrendArraySize, resultsSize, numTweets, totalNumTweets;
     	TST<SuperUser> users = null;
     	TST<PolarityValue> wordPolarities = null;
     	TweetEvaluator tweetEvaluator;
     	Object obj = null;
+    	Queue<TweetHolder> toBeAdded = new Queue<TweetHolder>();
+    	TweetHolder nextToBeAdded;
+    	SuperTweet superTweetToBeAdded;
+    	String text;
+    	String[] words;
     	
     	// Load From File
         try {
@@ -123,21 +128,26 @@ public class TrendingTweetPuller {
     	// Process Loop
     	for(;;)
     	{
+    		numTweets = 0;
+    		
     		// Create Backup
     		System.out.print("Backing Up... ");
-    		ObjectLoader.backupTweets(superTweetsFile, superTweetsBackup);
+    		try {
+				ObjectLoader.backupFile(superTweetsFile, superTweetsBackup);
+			} catch (FileNotFoundException e3) {
+				System.err.println("FileNotFoundException: Unable to Create Backup of TweetTable");
+			} catch (NullPointerException e3) {
+				System.err.println("NullPointerException: Unable to Create Backup of TweetTable");
+			} catch (IOException e3) {
+				System.err.println("IOException: Unable to Create Backup of TweetTable");
+			}
     		System.out.println("Done.");
-    		
-    		
-    		// Calculate Next Update Time
-    		origin.add(Calendar.HOUR_OF_DAY, 1);
-    		nextUpdate = origin.getTime();
     		
     		
     		// Gather Tweets
     		trendsList = twitter.getDailyTrends();
 	        trendsListSize = trendsList.size();
-	        System.out.print("Assimilating Tweets... ");
+	        System.out.print("Gathering Tweets... ");
 	        for(int i = 0; i < trendsListSize; i++)
 	        {
 	        	Trends hourlyTrends = trendsList.get(i);
@@ -161,13 +171,92 @@ public class TrendingTweetPuller {
 					for(int k = 0; k < resultsSize; k++)
 					{
 						numTweets++;
-						tweetTable.add(new SuperTweet(tweets.get(k), trendName, tweetEvaluator, twitter));
+						toBeAdded.enqueue(new TweetHolder(tweets.get(k), trendName));
+						//tweetTable.add(new SuperTweet(tweets.get(k), trendName, tweetEvaluator, twitter));
 					}
 				}
 	        }
 	        
+	        System.out.println("Done.\n" + numTweets + " Tweets Collected.\nAdding Tweets to TweetTable... ");
 	        
-	        System.out.print("Done.\n" + numTweets + " Tweets Collected.\nSaving Tweets... ");
+	        
+	        //Add Tweets to TweetTable Based Around Rate Limit
+	        numTweets = 0;
+	        totalNumTweets = 0;
+	        while (!toBeAdded.isEmpty())
+	        {
+	        	try
+	        	{
+	        		nextToBeAdded = toBeAdded.dequeue();
+	        		superTweetToBeAdded = new SuperTweet(nextToBeAdded.tweet, tweetEvaluator, twitter);
+	        		tweetTable.add(superTweetToBeAdded, nextToBeAdded.subject);
+	        		text = superTweetToBeAdded.getTweet().getText();
+	        		text = text.replaceAll("http:\\/\\/t.co\\/........", " ");
+	        		text = text.toLowerCase();
+	        		words = text.split("(\\W)+");
+	        		for (int i = 0; i < words.length; i++)
+	        		{
+	        			if (words[i].length() == 0 || words[i] == null)
+	    					continue;
+	        			//TODO Check if this actually stores a reference
+	        			tweetTable.add(superTweetToBeAdded, words[i]);
+	        		}
+	        		numTweets++;
+	        		totalNumTweets++;
+	        	}
+	        	catch (TwitterException e)
+	        	{
+	        		if (e.exceededRateLimitation())
+	        		{
+	        			System.out.println("Hourly Limit of " + e.getRateLimitStatus().getHourlyLimit() + " requests has been Reached.\n" +
+	        								numTweets + " Tweets have been added to the TweetTable in the Past Hour.\nProcess will Resume" +
+	        										": " + e.getRateLimitStatus().getResetTime());
+	        			nextUpdate = e.getRateLimitStatus().getResetTime();
+	        			
+	        			// Create Backup of TweetTable
+	        			System.out.print("Backing Up... ");
+	            		try {
+							ObjectLoader.backupFile(superTweetsFile, superTweetsBackup);
+						} catch (FileNotFoundException e3) {
+							System.err.println("FileNotFoundException: Unable to Create Backup of TweetTable");
+						} catch (NullPointerException e3) {
+							System.err.println("NullPointerException: Unable to Create Backup of TweetTable");
+						} catch (IOException e3) {
+							System.err.println("IOException: Unable to Create Backup of TweetTable");
+						}
+	            		System.out.println("Done.");
+	            		
+	            		// Save TweetTable
+	        			System.out.print("Saving TweetTable... ");
+	        			try {
+	        				ObjectLoader.save(tweetTable, tweetFile);
+	        			} catch (FileNotFoundException e1) {
+	        				System.err.println("FileNotFoundException: Could not save TweetTable to " + tweetFile);
+	        			} catch (IOException e1) {
+	        				System.err.println("IOException: Could not save TweetTable to " + tweetFile);
+	        			}
+	        			System.out.println("Done.");
+	        			
+	        			numTweets = 0;
+	        			while(new Date().before(nextUpdate))
+	        	        {
+	        	        	try {
+	        					Thread.sleep(10000);
+	        				} catch (InterruptedException e2) {
+	        					System.err.println("Interrupted");
+	        				}
+	        	        }
+	        		}
+	        		else
+	        		{
+	        			if (e.isErrorMessageAvailable())
+	        				System.err.println(e.getErrorMessage());
+	        		}
+	        	}
+	        }
+	        
+	        
+	        System.out.print("Finished Adding Tweets to TweetTable.\n" + totalNumTweets + " Tweets Added.\nSaving Tweets... ");
 	        try {
 				ObjectLoader.save(tweetTable, tweetFile);
 			} catch (FileNotFoundException e1) {
@@ -175,18 +264,17 @@ public class TrendingTweetPuller {
 			} catch (IOException e1) {
 				System.err.println("IOException: Could not save TweetTable to " + tweetFile);
 			}
-	        System.out.println("Done.\nNext Update at " + origin.getTime().toString());
-	        
-	        
-	        // Wait Until Next Update Time
-	        while(new Date().before(nextUpdate))
-	        {
-	        	try {
-					Thread.sleep(10000);
-				} catch (InterruptedException e) {
-					System.err.println("Interrupted");
-				}
-	        }
+	        System.out.println("Done.");
     	}
+	}
+	private static class TweetHolder
+	{
+		private String subject;
+		private Tweet tweet;
+		public TweetHolder(Tweet tweet, String subject)
+		{
+			this.subject = subject;
+			this.tweet = tweet;
+		}
 	}
 }
