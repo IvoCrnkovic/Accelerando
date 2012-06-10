@@ -1,3 +1,5 @@
+package src;
+
 import java.util.List;
 import java.util.Scanner;
 import java.io.*;
@@ -77,6 +79,47 @@ public class TTC {
 		//number of tweets per topic
 		int numTweets = 20;
 		String[] topic = {"Justin Bieber",
+				"Miley Cyrus",
+				"Bob Welch",
+				"Wade Davis",
+				"CMT music awards",
+				"Ray Bradbury",
+				"I'll have another",
+				"Creflo dollar",
+				"Antigua",
+				"Triple crown",
+				"Obama",
+				"Biden",
+				"Moonrise Kingdom",
+				"Prometheus",
+				"The dictator",
+				"Snow White and the Huntsman",
+				"Madagascar 3",
+				"The Avengers",
+				"Ninja III",
+				"Pacquiao",
+				"Alonzo Mourning",
+				"NBA",
+				"Diablo 3",
+				"League of Legends",
+				"MLG",
+				"Starcraft",
+				"Minecraft",
+				"E3",
+				"Watch Dogs",
+				"Halo",
+				"Pac Man",
+				"Like",
+				"Hate",
+				"Worst",
+				"Best",
+				"Good",
+				"Bad",
+				"College",
+				"Girlfriend",
+				"Boyfriend",
+				"People"};
+		String[] topic2 = {"Justin Bieber",
 				"Kim Kardashian",
 				"Jennifer Aniston",
 				"Lindsay Lohan",
@@ -201,7 +244,7 @@ public class TTC {
         try {
         	PrintWriter out = null;
 			try {
-				out = new PrintWriter(new FileWriter("HotTopics.txt"));
+				out = new PrintWriter(new FileWriter("HotTopics2.txt"));
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -226,13 +269,12 @@ public class TTC {
 				{
 					boolean putIt = true;
 					tweetText = tweets.get(i).getText();
-					if(tweetText.indexOf("RT") > -1)
-						for(int k = 0; k < i; k++)
-							if(tweetText.equals(tweets.get(k).getText()))
-							{
-								putIt = false;
-								break;
-							}
+					for(int k = 0; k < i; k++)
+						if(tweetText.equals(tweets.get(k).getText()))
+						{
+							putIt = false;
+							break;
+						}
 					if(tweetText.indexOf('\n') > -1)
 						putIt = false;
 					if(putIt)

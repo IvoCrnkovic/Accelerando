@@ -1,0 +1,10 @@
+INDEX VERSION 1.126+C:\Users\Brendan Chou\Eclipse\TwitterTestClient1\.metadata\.plugins\org.eclipse.jdt.core
+1762804335.index
+1881946401.index
+294659282.index
+3403705241.index
+1885782988.index
+485277119.index
+3067516834.index
+4179483869.index
+1834389359.index
