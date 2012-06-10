@@ -72,17 +72,25 @@ public class TweetTable implements java.io.Serializable
 	{
 		Queue<SuperTweet> q = new Queue<SuperTweet>();
 		RBBST<Date, SuperTweet> tree = tweetTable.get(subject);
-		for (Date d : tree.keys(startDate, endDate))
+		try
 		{
-			q.enqueue(tree.get(d));
+			for (Date d : tree.keys(startDate, endDate))
+			{
+				q.enqueue(tree.get(d));
+			}
+			return q;
 		}
-		return q;
+		catch(NullPointerException e)
+		{
+			return null;
+		}
 	}
-/*
 	public Iterable<SuperTweet> getTweets(String[] subjects, Date startDate, Date endDate)
 	{
 		//get the list of tweets that meet one of the subjects
 		Iterable<SuperTweet> targetTweets = getTweets(subjects[0], startDate, endDate);		
+		try
+		{
 		Iterator<SuperTweet> tweetIterator = targetTweets.iterator();
 		SuperTweet tweet;
 
@@ -98,10 +106,13 @@ public class TweetTable implements java.io.Serializable
 				}
 			}
 		}
-		
-		return (Iterable<SuperTweet>) tweetIterator;
+		return targetTweets;
+		}
+		catch (NullPointerException e)
+		{
+			return null;
+		}
 	}
-*/
 	/**
 	 * Returns the RBBST associated with a given subject
 	 * @param subject The subject of the tweets
