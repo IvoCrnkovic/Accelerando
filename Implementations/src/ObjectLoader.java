@@ -31,7 +31,7 @@ public class ObjectLoader {
 		FileInputStream tweetIn = null;
 		FileOutputStream backupOut = null;
 		byte[] buf = new byte[1024];
-		file1.delete();
+		file2.delete();
 		file2.createNewFile();
 		backupOut = new FileOutputStream(file2);
 		tweetIn = new FileInputStream(file1);
