@@ -225,6 +225,9 @@ public class PolarityGenerator
 				v.incrementOccurrences();
 			}
 		}
+		ObjectLoader.save(words, wordsFilename);
+		writeStats(userScores);
+		System.exit(0);
 	}
 	
 	// Save User Voting Statistics

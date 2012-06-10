@@ -58,7 +58,6 @@ public class TrendingTweetPuller {
     	String text;
     	String[] words;
     	final int lookupSize = 100;
-    	String[] usersToLookup = new String[lookupSize];
     	TweetHolder[] tweetsToBeAdded = new TweetHolder[lookupSize];
     	long[] foundUsers;
     	ArrayList<User> finalUsers;
