@@ -1,4 +1,6 @@
+import java.util.Arrays;
 import java.util.Date;
+import java.util.Iterator;
 /**
  * Class for storing SuperTweets
  */
@@ -9,20 +11,25 @@ public class TweetTable implements java.io.Serializable
 	 *@see Java.io.Serializable
 	 */
 	private static final long serialVersionUID = 5446506112220258045L;
-	
+
 	private TST<RBBST<Date, SuperTweet>> tweetTable;
 	private Queue<SuperTweet> toBeUpdated;
+	private int size;
 	public TweetTable()
 	{
 		tweetTable = new TST<RBBST<Date, SuperTweet>>();
 		toBeUpdated = new Queue<SuperTweet>();
+		size = 0;
 	}
-	
+	public int getSize()
+	{
+		return size;
+	}
 	public Queue<SuperTweet> getToBeUpdated()
 	{
 		return toBeUpdated;
 	}
-	
+
 	/**
 	 * Method to add a supertweet to the table.
 	 * 
@@ -32,9 +39,8 @@ public class TweetTable implements java.io.Serializable
 	 * 
 	 * @param t The tweet to be added.
 	 */
-	public void add(SuperTweet t)
+	public void add(SuperTweet t, String subject)
 	{
-		String subject = t.getSubject();
 		if (subject == null | subject.length() == 0)
 		{
 			System.err.println("Subjectless Tweet: Was not Added to TweetTable");
@@ -44,11 +50,12 @@ public class TweetTable implements java.io.Serializable
 			tweetTable.get(subject).put(t.getTweet().getCreatedAt(), t);
 		else
 		{
-			tweetTable.put(t.getSubject(), new RBBST<Date, SuperTweet>());
+			tweetTable.put(subject, new RBBST<Date, SuperTweet>());
 			tweetTable.get(subject).put(t.getTweet().getCreatedAt(), t);
 		}
+		size++;
 	}
-	
+
 
 	/**
 	 * Method for creating iterators to go through the hash table.
@@ -65,13 +72,47 @@ public class TweetTable implements java.io.Serializable
 	{
 		Queue<SuperTweet> q = new Queue<SuperTweet>();
 		RBBST<Date, SuperTweet> tree = tweetTable.get(subject);
-		for (Date d : tree.keys(startDate, endDate))
+		try
 		{
-			q.enqueue(tree.get(d));
+			for (Date d : tree.keys(startDate, endDate))
+			{
+				q.enqueue(tree.get(d));
+			}
+			return q;
 		}
-		return q;
+		catch(NullPointerException e)
+		{
+			return null;
+		}
 	}
-	
+	public Iterable<SuperTweet> getTweets(String[] subjects, Date startDate, Date endDate)
+	{
+		//get the list of tweets that meet one of the subjects
+		Iterable<SuperTweet> targetTweets = getTweets(subjects[0], startDate, endDate);		
+		try
+		{
+		Iterator<SuperTweet> tweetIterator = targetTweets.iterator();
+		SuperTweet tweet;
+
+		//pare down to a list of tweets that have all the subjects
+		while (tweetIterator.hasNext())
+		{
+			tweet = tweetIterator.next();
+			for (int i = 1; i < subjects.length; i++)
+			{
+				if (!(Arrays.asList(tweet.getTags()).contains(subjects[i])))
+				{
+					tweetIterator.remove();
+				}
+			}
+		}
+		return targetTweets;
+		}
+		catch (NullPointerException e)
+		{
+			return null;
+		}
+	}
 	/**
 	 * Returns the RBBST associated with a given subject
 	 * @param subject The subject of the tweets

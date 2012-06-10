@@ -1,5 +1,7 @@
 import twitter4j.Tweet;
+import twitter4j.Twitter;
 import twitter4j.TwitterException;
+import twitter4j.User;
 
 /**
  * SuperTweet extension of Tweet class.  Added polarization and weight fields and extended all existing fields and methods.
@@ -18,13 +20,6 @@ public class SuperTweet implements java.io.Serializable{
 	 *@see superTweet.getTweet()
 	 */
 	private final Tweet tweet;
-	
-	/**
-	 *The search term that was used to get this particular tweet.
-	 *
-	 *@see SuperTweet.getSubject()
-	 */
-	private final String subject;
 	
 	/**
 	 *The calculated polarization of the superTweet.  Runs from -5 to 5, the larger number representing a more positive outlook on the subject.
@@ -51,6 +46,9 @@ public class SuperTweet implements java.io.Serializable{
 	 */
 	private int vote;
 	
+	private final User user;
+	
+	private String[] tags;
 	
 	/**
 	 * Constructor method.
@@ -62,25 +60,14 @@ public class SuperTweet implements java.io.Serializable{
 	 * @see    Tweet
 	 */
 	
-	public SuperTweet(Tweet newTweet, String newSubject, TweetEvaluator eval)
+	public SuperTweet(Tweet newTweet, User user, String[] tags, TweetEvaluator eval, Twitter t) throws TwitterException
 	{
 		tweet = newTweet;
-		subject = newSubject;
-		polarization = eval.calculatePolarization(tweet);
-		try {
-			weight = eval.calculateWeight(tweet);
-		} catch (TwitterException e) {
-			
-			System.err.println("TwitterException: Unable to Calculate Tweet Weight. Initializing to default value (0).");
-			if(e.isErrorMessageAvailable())
-				System.err.println(e.getErrorMessage());
-			if (e.exceededRateLimitation())
-			{
-				System.err.println("Current Hourly Limit: " + e.getRateLimitStatus().getHourlyLimit());
-				System.err.println("Reset Time: " + e.getRateLimitStatus().getResetTime());
-			}
-		}
 		vote = 0;
+        this.user = user;
+        this.tags = tags;
+		polarization = eval.calculatePolarization(this);
+		weight = eval.calculateWeight(this);
 	}
 
 	/**
@@ -108,10 +95,6 @@ public class SuperTweet implements java.io.Serializable{
 		return tweet;
 	}
 	
-	public String getSubject()
-	{
-		return subject;
-	}
 	/**
 	 * Method to retrieve the weight of this superTweet.
 	 * <p>
@@ -140,5 +123,38 @@ public class SuperTweet implements java.io.Serializable{
 	public void setVote(int v)
 	{
 		vote = v;
+	}
+	public User getUser()
+	{
+		return user;
+	}
+	public String[] getTags()
+	{
+		return tags;
+	}
+	public void setTags(String[] tags)
+	{
+		this.tags = tags;
+	}
+	public boolean equals(Object y)
+	{
+		if (y == this) return true;
+	    if (y == null) return false;
+	    if (y.getClass() != this.getClass())
+	       return false;
+	    SuperTweet that = (SuperTweet) y;
+	    if (this.polarization != that.polarization) return false;
+	    if (this.vote != that.vote) return false;
+	    if (this.weight != that.weight) return false;
+	    if (!this.tweet.equals(that.tweet)) return false;
+	    if (!this.user.equals(that.user)) return false;
+	    return true;
+	}
+	public int hashCode()
+	{
+		int hash = 13;
+		hash = 31 * hash + tweet.hashCode();
+		hash = 31 * hash + user.hashCode();
+	    return hash;
 	}
 }

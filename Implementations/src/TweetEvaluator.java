@@ -6,15 +6,13 @@ import twitter4j.*;
 public class TweetEvaluator {
 	
 	TST<PolarityValue> wordPolarities = null;
-	TST<SuperUser> users = null;
 	/**
 	 * Constructor Method.
 	 * @param tstFilename The filename where the .tst file with serialized TST can be found to 
 	 */
-	public TweetEvaluator(TST<PolarityValue> wordPolarities, TST<SuperUser> users)
+	public TweetEvaluator(TST<PolarityValue> wordPolarities)
 	{
 		this.wordPolarities = wordPolarities;
-		this.users = users;
 	}
 	
 	/**
@@ -30,8 +28,8 @@ public class TweetEvaluator {
 	 * @param tweet the tweet to analyze
 	 * @return A double representing the total polarization of the tweet.
 	 */
-	public double calculatePolarization(Tweet tweet) {
-		return determineSentiment(tweet.getText());
+	public double calculatePolarization(SuperTweet tweet) {
+		return determineSentiment(tweet.getTweet().getText());
 	}
 	
 	
@@ -45,17 +43,13 @@ public class TweetEvaluator {
 	 * @return A double representing the weight of the tweet.
 	 * @throws TwitterException
 	 */
-	public double calculateWeight(Tweet tweet) throws TwitterException {
-		/*FIXME Change Back
-		String username = tweet.getFromUser();
-        User user = new TwitterFactory().getInstance().showUser(username);
-        long numFollowers= user.getFollowersCount();
-        long numListed   = user.getListedCount();
+	public double calculateWeight(SuperTweet tweet) throws TwitterException 
+	{
+        long numFollowers= tweet.getUser().getFollowersCount();
+        long numListed   = tweet.getUser().getListedCount();
         double total = numFollowers + numListed;
         
         return Math.log10(total+2);
-        */
-		return 1;
 	}
 	
 	private String removeFluff(String text)
