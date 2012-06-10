@@ -24,8 +24,8 @@ public class SingleSubjectPuller {
 	/**
 	 * @param args
 	 */
-	public static void main (String [] args) {
-		String subject = "Lady Gaga";
+	public static void singleSubjectPull (String subject) {
+		
 		
 		// Files to Load From
 		String tweetFile = "superTweets.data";
