@@ -1,6 +1,7 @@
 import twitter4j.Tweet;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
+import twitter4j.User;
 
 /**
  * SuperTweet extension of Tweet class.  Added polarization and weight fields and extended all existing fields and methods.
@@ -45,6 +46,9 @@ public class SuperTweet implements java.io.Serializable{
 	 */
 	private int vote;
 	
+	private final User user;
+	
+	private String[] tags;
 	
 	/**
 	 * Constructor method.
@@ -56,12 +60,14 @@ public class SuperTweet implements java.io.Serializable{
 	 * @see    Tweet
 	 */
 	
-	public SuperTweet(Tweet newTweet, TweetEvaluator eval, Twitter t) throws TwitterException
+	public SuperTweet(Tweet newTweet, User user, String[] tags, TweetEvaluator eval, Twitter t) throws TwitterException
 	{
 		tweet = newTweet;
-		polarization = eval.calculatePolarization(tweet);
-		weight = eval.calculateWeight(tweet, t);
 		vote = 0;
+        this.user = user;
+        this.tags = tags;
+		polarization = eval.calculatePolarization(this);
+		weight = eval.calculateWeight(this);
 	}
 
 	/**
@@ -118,6 +124,18 @@ public class SuperTweet implements java.io.Serializable{
 	{
 		vote = v;
 	}
+	public User getUser()
+	{
+		return user;
+	}
+	public String[] getTags()
+	{
+		return tags;
+	}
+	public void setTags(String[] tags)
+	{
+		this.tags = tags;
+	}
 	public boolean equals(Object y)
 	{
 		if (y == this) return true;
@@ -129,12 +147,14 @@ public class SuperTweet implements java.io.Serializable{
 	    if (this.vote != that.vote) return false;
 	    if (this.weight != that.weight) return false;
 	    if (!this.tweet.equals(that.tweet)) return false;
+	    if (!this.user.equals(that.user)) return false;
 	    return true;
 	}
 	public int hashCode()
 	{
 		int hash = 13;
 		hash = 31 * hash + tweet.hashCode();
+		hash = 31 * hash + user.hashCode();
 	    return hash;
 	}
 }

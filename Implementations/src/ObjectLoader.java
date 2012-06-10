@@ -24,15 +24,17 @@ public class ObjectLoader {
 	
 	
 	// Backup the TweetHashTable data structure from superTweetsFile to superTweetsBackup
-	public static void backupFile(File superTweetsFile, File superTweetsBackup) throws IOException, FileNotFoundException, NullPointerException 
+	public static void backupFile(String filename, String backupFilename) throws IOException, FileNotFoundException, NullPointerException 
 	{
+		File file1 = new File(filename);
+		File file2 = new File(backupFilename);
 		FileInputStream tweetIn = null;
 		FileOutputStream backupOut = null;
 		byte[] buf = new byte[1024];
-		superTweetsBackup.delete();
-		superTweetsBackup.createNewFile();
-		backupOut = new FileOutputStream(superTweetsBackup);
-		tweetIn = new FileInputStream(superTweetsFile);
+		file1.delete();
+		file2.createNewFile();
+		backupOut = new FileOutputStream(file2);
+		tweetIn = new FileInputStream(file1);
 		int len;
 		while ((len = tweetIn.read(buf)) > 0){
 			backupOut.write(buf, 0, len);

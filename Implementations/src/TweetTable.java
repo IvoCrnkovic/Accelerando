@@ -12,12 +12,18 @@ public class TweetTable implements java.io.Serializable
 	
 	private TST<RBBST<Date, SuperTweet>> tweetTable;
 	private Queue<SuperTweet> toBeUpdated;
+	private int size;
 	public TweetTable()
 	{
 		tweetTable = new TST<RBBST<Date, SuperTweet>>();
 		toBeUpdated = new Queue<SuperTweet>();
+		size = 0;
 	}
 	
+	public int getSize()
+	{
+		return size;
+	}
 	public Queue<SuperTweet> getToBeUpdated()
 	{
 		return toBeUpdated;
@@ -45,6 +51,7 @@ public class TweetTable implements java.io.Serializable
 			tweetTable.put(subject, new RBBST<Date, SuperTweet>());
 			tweetTable.get(subject).put(t.getTweet().getCreatedAt(), t);
 		}
+		size++;
 	}
 	
 
