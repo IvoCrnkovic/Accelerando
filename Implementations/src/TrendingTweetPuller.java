@@ -166,6 +166,7 @@ public class TrendingTweetPuller {
 					}
 		        }
     		}
+    		// TODO check infinite errors
     		catch (TwitterException e)
     		{
     			if (e.exceededRateLimitation())
