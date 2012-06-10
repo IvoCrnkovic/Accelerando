@@ -1,3 +1,4 @@
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 /**
@@ -71,17 +72,26 @@ public class TweetTable implements java.io.Serializable
 	{
 		Queue<SuperTweet> q = new Queue<SuperTweet>();
 		RBBST<Date, SuperTweet> tree = tweetTable.get(subject);
-		for (Date d : tree.keys(startDate, endDate))
+		try
 		{
-			q.enqueue(tree.get(d));
+			for (Date d : tree.keys(startDate, endDate))
+			{
+				q.enqueue(tree.get(d));
+			}
+			return q;
 		}
-		return q;
+		catch(NullPointerException e)
+		{
+			return null;
+		}
 	}
 
 	public Iterable<SuperTweet> getTweets(String[] subjects, Date startDate, Date endDate)
 	{
 		//get the list of tweets that meet one of the subjects
 		Iterable<SuperTweet> targetTweets = getTweets(subjects[0], startDate, endDate);		
+		try
+		{
 		Iterator<SuperTweet> tweetIterator = targetTweets.iterator();
 		SuperTweet tweet;
 
@@ -91,11 +101,18 @@ public class TweetTable implements java.io.Serializable
 			tweet = tweetIterator.next();
 			for (int i = 1; i < subjects.length; i++)
 			{
-				if (!(tweet.getTags().asList().contains(subjects[i])))
+				if (!(Arrays.asList(tweet.getTags()).contains(subjects[i])))
 				{
 					tweetIterator.remove();
 				}
 			}
+		}
+
+		return targetTweets;
+		}
+		catch (NullPointerException e)
+		{
+			return null;
 		}
 	}
 
