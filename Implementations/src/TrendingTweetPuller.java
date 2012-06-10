@@ -21,6 +21,7 @@ public class TrendingTweetPuller {
 		// Number of tweets from each subject to pull
 		final int tweetsToPull = 100;
 		
+		System.out.print("Authenticating... ");
 		// Authenticate
 		final String username = "turtleman755";
 		final String password = "accelerando";
@@ -39,7 +40,8 @@ public class TrendingTweetPuller {
         TwitterFactory tf = new TwitterFactory(cb.build());
         AccessToken accessToken = new AccessToken(token, tokenSecret);
         Twitter twitter = tf.getInstance(accessToken);
-		
+		System.out.println("Done");
+        
 		// Instance Variables
 		TweetTable tweetTable = null;
 		Date nextUpdate;
@@ -65,6 +67,7 @@ public class TrendingTweetPuller {
     	long[] userIDs = new long[lookupSize];
     	
     	// Load From File
+    	System.out.print("Loading... ");
         try {
 			obj = ObjectLoader.load(tweetTableFile);
 		} catch (FileNotFoundException e3) {
@@ -104,7 +107,7 @@ public class TrendingTweetPuller {
         	System.err.println("Class Mismatch: Failed to load Word Polarizations from " + wordsFile);
         	System.exit(0);
         }
-        
+        System.out.println("Done.");
     	tweetEvaluator = new TweetEvaluator(wordPolarities);
     	
     	
