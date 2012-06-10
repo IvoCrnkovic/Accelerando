@@ -1,3 +1,4 @@
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 /**
@@ -77,7 +78,7 @@ public class TweetTable implements java.io.Serializable
 		}
 		return q;
 	}
-
+/*
 	public Iterable<SuperTweet> getTweets(String[] subjects, Date startDate, Date endDate)
 	{
 		//get the list of tweets that meet one of the subjects
@@ -91,14 +92,16 @@ public class TweetTable implements java.io.Serializable
 			tweet = tweetIterator.next();
 			for (int i = 1; i < subjects.length; i++)
 			{
-				if (!(tweet.getTags().asList().contains(subjects[i])))
+				if (!(Arrays.asList(tweet.getTags()).contains(subjects[i])))
 				{
 					tweetIterator.remove();
 				}
 			}
 		}
+		
+		return (Iterable<SuperTweet>) tweetIterator;
 	}
-
+*/
 	/**
 	 * Returns the RBBST associated with a given subject
 	 * @param subject The subject of the tweets
