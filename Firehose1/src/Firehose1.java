@@ -5,7 +5,8 @@ import java.lang.*;
 
 public class Firehose1 {
 
-	public static void main(String[] args) {
+	public static void main(String[] args)
+	{
 		final String user = "turtleman755";
 		final String password = "accelerando";
 		final String consumerKey = "bceUVDFbpUh2pcu6gvpp9w";
@@ -20,17 +21,21 @@ public class Firehose1 {
 		cb.setOAuthConsumerSecret(consumerSecret);
 		cb.setOAuthAccessToken(token);
 		cb.setOAuthAccessTokenSecret(tokenSecret);
-
+		AccessToken AT = new AccessToken(token, tokenSecret);
 		
 		StatusListener SL = new StatusListener()
 		{
 	        public void onStatus(Status status)
 	        {
-	        	System.out.println("got status");
+	        	String text = status.getText();
+	        	if(text.indexOf('\u00F6') > -1)
+	        		System.out.println(status.getUser().getScreenName() + ": " + text);
+	        	else
+	        		System.out.println("no");
 	        }
 	        public void onDeletionNotice(StatusDeletionNotice statusDeletionNotice)
 	        {
-	        	System.out.println("got deletionnotice");
+	        	//System.out.println("got deletionnotice");
 	        }
 	        public void onTrackLimitationNotice(int numberOfLimitedStatuses)
 	        {
@@ -44,13 +49,24 @@ public class Firehose1 {
 				System.out.println("got scrubgeo");
 			}
 	    };
-		AccessToken AT = new AccessToken(token, tokenSecret);
+	    long[] follow = null;
+	    String[] track = {"summer", "olympics", "2012"};
+		FilterQuery query = new FilterQuery(0, follow, track);
 		
 		TwitterStreamFactory TSF = new TwitterStreamFactory(cb.build());
 		TwitterStream TS = TSF.getInstance(AT);
 		TS.addListener(SL);
-		//StatusStream ss = TS.getFilterStream();
-		//TS.sample();
+		StatusStream ss;
+		//TS.filter(query);
+		/*try
+		{
+			ss = TS.getFilterStream(query);
+			while(true)
+			{
+				ss.next(SL);
+			}
+		} catch (TwitterException e) {}*/
+		TS.sample();
 
 	}
 

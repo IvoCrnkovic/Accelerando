@@ -85,7 +85,6 @@ public class TweetTable implements java.io.Serializable
 			return null;
 		}
 	}
-
 	public Iterable<SuperTweet> getTweets(String[] subjects, Date startDate, Date endDate)
 	{
 		//get the list of tweets that meet one of the subjects
@@ -107,7 +106,6 @@ public class TweetTable implements java.io.Serializable
 				}
 			}
 		}
-
 		return targetTweets;
 		}
 		catch (NullPointerException e)
@@ -115,7 +113,6 @@ public class TweetTable implements java.io.Serializable
 			return null;
 		}
 	}
-
 	/**
 	 * Returns the RBBST associated with a given subject
 	 * @param subject The subject of the tweets

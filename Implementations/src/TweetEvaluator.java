@@ -6,15 +6,13 @@ import twitter4j.*;
 public class TweetEvaluator {
 	
 	TST<PolarityValue> wordPolarities = null;
-	TST<SuperUser> users = null;
 	/**
 	 * Constructor Method.
 	 * @param tstFilename The filename where the .tst file with serialized TST can be found to 
 	 */
-	public TweetEvaluator(TST<PolarityValue> wordPolarities, TST<SuperUser> users)
+	public TweetEvaluator(TST<PolarityValue> wordPolarities)
 	{
 		this.wordPolarities = wordPolarities;
-		this.users = users;
 	}
 	
 	/**

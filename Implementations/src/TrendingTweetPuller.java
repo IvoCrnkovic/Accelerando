@@ -21,6 +21,7 @@ public class TrendingTweetPuller {
 		// Number of tweets from each subject to pull
 		final int tweetsToPull = 100;
 		
+		System.out.print("Authenticating... ");
 		// Authenticate
 		final String username = "turtleman755";
 		final String password = "accelerando";
@@ -39,7 +40,8 @@ public class TrendingTweetPuller {
         TwitterFactory tf = new TwitterFactory(cb.build());
         AccessToken accessToken = new AccessToken(token, tokenSecret);
         Twitter twitter = tf.getInstance(accessToken);
-		
+		System.out.println("Done");
+        
 		// Instance Variables
 		TweetTable tweetTable = null;
 		Date nextUpdate;
@@ -48,23 +50,23 @@ public class TrendingTweetPuller {
         List<Tweet> tweets = null;
         List<User> usersToBeAdded = null;
     	int trendsListSize, hourlyTrendArraySize, resultsSize, numTweets, totalNumTweets;
-    	TST<SuperUser> users = null;
     	TST<PolarityValue> wordPolarities = null;
     	TweetEvaluator tweetEvaluator;
     	Object obj = null;
     	Queue<TweetHolder> toBeAdded = new Queue<TweetHolder>();
-    	TweetHolder nextToBeAdded;
     	SuperTweet superTweetToBeAdded;
     	String text;
     	String[] words;
     	final int lookupSize = 100;
-    	String[] usersToLookup = new String[lookupSize];
     	TweetHolder[] tweetsToBeAdded = new TweetHolder[lookupSize];
-    	String[] foundUsers;
-    	List<User> finalUsers;
-    	List<Tweet> finalTweets;
+    	long[] foundUsers;
+    	ArrayList<User> finalUsers;
+    	ArrayList<Tweet> finalTweets;
+    	ArrayList<String> finalSubjects;
+    	long[] userIDs = new long[lookupSize];
     	
     	// Load From File
+    	System.out.print("Loading... ");
         try {
 			obj = ObjectLoader.load(tweetTableFile);
 		} catch (FileNotFoundException e3) {
@@ -104,10 +106,8 @@ public class TrendingTweetPuller {
         	System.err.println("Class Mismatch: Failed to load Word Polarizations from " + wordsFile);
         	System.exit(0);
         }
-        if (obj instanceof TST<?>)
-        	users = (TST<SuperUser>) obj;
-        
-    	tweetEvaluator = new TweetEvaluator(wordPolarities, users);
+        System.out.println("Done.");
+    	tweetEvaluator = new TweetEvaluator(wordPolarities);
     	
     	
     	
@@ -161,11 +161,11 @@ public class TrendingTweetPuller {
 						{
 							numTweets++;
 							toBeAdded.enqueue(new TweetHolder(tweets.get(k), trendName));
-							//tweetTable.add(new SuperTweet(tweets.get(k), trendName, tweetEvaluator, twitter));
 						}
 					}
 		        }
     		}
+    		// TODO check infinite errors
     		catch (TwitterException e)
     		{
     			if (e.exceededRateLimitation())
@@ -197,6 +197,7 @@ public class TrendingTweetPuller {
         				System.err.println("IOException: Could not save TweetTable to " + tweetTableFile);
         			}
         			System.out.println("Done.");
+        			
         			
         			numTweets = 0;
         			
@@ -232,37 +233,50 @@ public class TrendingTweetPuller {
 	        	{
 	        		// Ignore last tweets in Queue, possibly change later
 	        		if (toBeAdded.size() < lookupSize)
-	        			continue;
+	        			break;
 	        		
 	        		for (int i = 0; i < lookupSize; i++)
 	        		{
 	        			tweetsToBeAdded[i] = toBeAdded.dequeue();
-	        			usersToLookup[i] = tweetsToBeAdded[i].tweet.getFromUser();
+	        			userIDs[i] = tweetsToBeAdded[i].tweet.getFromUserId();
 	        		}
-	        		usersToBeAdded = twitter.lookupUsers(usersToLookup);
+	        		// TODO make sure IDs are actually the same between Search and REST APIs
+	        		usersToBeAdded = twitter.lookupUsers(userIDs);
+	        		
 	        		// Match up users and tweets
-	        		foundUsers = new String[usersToBeAdded.size()];
-	        		int count = 0;
+	        		foundUsers = new long[usersToBeAdded.size()];
+	        		finalTweets = new ArrayList<Tweet>();
+	        		finalUsers = new ArrayList<User>();
+	        		finalSubjects = new ArrayList<String>();
+	        		int index = 0;
 	        		for (User u : usersToBeAdded)
 	        		{
-	        			foundUsers[count] = u.getName();
-	        			count++;
+	        			foundUsers[index] = u.getId();
+	        			index++;
 	        		}
 	        		Arrays.sort(foundUsers);
 	        		for (int i = 0; i < lookupSize; i++)
-	        			Arrays.binarySearch(foundUsers, tweetsToBeAdded[i].tweet.getFromUser());
-	        		
-	
-	        		for (int i = 0; i < lookupSize; i++)
 	        		{
-	        			text = tweetsToBeAdded[i].tweet.getText();
+	        			index = Arrays.binarySearch(foundUsers, tweetsToBeAdded[i].tweet.getFromUserId());
+	        			if (index >= 0)
+	        			{
+	        				finalTweets.add(tweetsToBeAdded[i].tweet);
+	        				finalUsers.add(usersToBeAdded.get(index));
+	        				finalSubjects.add(tweetsToBeAdded[i].subject);
+	        			}
+	        		}
+	        		
+	        		Tweet currentTweet;
+	        		for (int i = 0; i < finalTweets.size(); i++)
+	        		{
+	        			currentTweet = finalTweets.get(i);
+	        			text = currentTweet.getText();
 		        		text = text.replaceAll("http:\\/\\/t.co\\/........", " ");
 		        		text = text.toLowerCase();
 		        		words = text.split("(\\W)+");
-	        			superTweetToBeAdded = new SuperTweet(tweetsToBeAdded[i].tweet, usersToBeAdded.get(i), words,
+	        			superTweetToBeAdded = new SuperTweet(currentTweet, finalUsers.get(i), words,
 	        					tweetEvaluator, twitter);
-	        			tweetTable.add(superTweetToBeAdded, tweetsToBeAdded[i].subject);
-	        			
+	        			tweetTable.add(superTweetToBeAdded, finalSubjects.get(i));
 		        		for (int j = 0; j < words.length; j++)
 		        		{
 		        			if (words[j].length() == 0 || words[j] == null)

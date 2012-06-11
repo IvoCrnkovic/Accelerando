@@ -1,0 +1,15 @@
+!SESSION 2012-06-10 00:08:13.627 -----------------------------------------------
+eclipse.buildId=M20110909-1335
+java.version=1.6.0_27
+java.vendor=Sun Microsystems Inc.
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=en_US
+Framework arguments:  -product org.eclipse.epp.package.java.product -product org.eclipse.epp.package.java.product
+Command-line arguments:  -os win32 -ws win32 -arch x86_64 -product org.eclipse.epp.package.java.product -data C:\Users\Brendan Chou\Eclipse\TwitterTestClient1 -product org.eclipse.epp.package.java.product
+
+!ENTRY org.eclipse.ui.ide 4 4 2012-06-10 00:09:56.041
+!MESSAGE Problems saving workspace
+
+!ENTRY org.eclipse.ui.ide 2 1 2012-06-10 00:09:56.051
+!MESSAGE Problems occurred while trying to save the state of the workbench.
+!SUBENTRY 1 org.eclipse.core.resources 2 234 2012-06-10 00:09:56.051
+!MESSAGE The project description file (.project) for 'go' was missing.  This file contains important information about the project.  A new project description file has been created, but some information about the project may have been lost.
