@@ -3,13 +3,11 @@
  * 
  */
 public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Serializable{
-	
 	/**
-	 *Serial ID number that eclipse told us to use for serialization.  Don't really know what it does.
-	 *@see Java.io.Serializable
+	 * 
 	 */
-	private static final long serialVersionUID = 1L;
-	
+	private static final long serialVersionUID = 5093189298076977124L;
+
 	/**
 	 * Boolean RED, True.
 	 */
@@ -35,7 +33,7 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
     	 *Serial ID number that eclipse told us to use for serialization.  Don't really know what it does.
     	 *@see Java.io.Serializable
     	 */
-    	private static final long serialVersionUID = 1L;
+    	private static final long serialVersionUID = -2589482579176328609L;
 		
     	/**
     	 * Key type
@@ -172,7 +170,6 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
     public void put(Key key, Value val) {
         root = put(root, key, val);
         root.color = BLACK;
-        assert check();
     }
 
     // insert the key-value pair in the subtree rooted at h
@@ -212,7 +209,6 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
 
         root = deleteMin(root);
         if (!isEmpty()) root.color = BLACK;
-        assert check();
     }
 
     // delete the key-value pair with the minimum key rooted at h
@@ -242,7 +238,6 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
 
         root = deleteMax(root);
         if (!isEmpty()) root.color = BLACK;
-        assert check();
     }
 
     // delete the key-value pair with the maximum key rooted at h
@@ -278,7 +273,6 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
 
         root = delete(root, key);
         if (!isEmpty()) root.color = BLACK;
-        assert check();
     }
 
     // delete the key-value pair with the given key rooted at h
@@ -550,80 +544,5 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
         if (lo.compareTo(hi) > 0) return 0;
         if (contains(hi)) return rank(hi) - rank(lo) + 1;
         else              return rank(hi) - rank(lo);
-    }
-
-
-   /*************************************************************************
-    *  Check integrity of red-black BST data structure
-    *************************************************************************/
-    private boolean check() {
-        if (!isBST())            System.out.println("Not in symmetric order");
-        if (!isSizeConsistent()) System.out.println("Subtree counts not consistent");
-        if (!isRankConsistent()) System.out.println("Ranks not consistent");
-        if (!is23())             System.out.println("Not a 2-3 tree");
-        if (!isBalanced())       System.out.println("Not balanced");
-        return isBST() && isSizeConsistent() && isRankConsistent() && is23() && isBalanced();
-    }
-
-    // does this binary tree satisfy symmetric order?
-    // Note: this test also ensures that data structure is a binary tree since order is strict
-    private boolean isBST() {
-        return isBST(root, null, null);
-    }
-
-    // is the tree rooted at x a BST with all keys strictly between min and max
-    // (if min or max is null, treat as empty constraint)
-    // Credit: Bob Dondero's elegant solution
-    private boolean isBST(Node x, Key min, Key max) {
-        if (x == null) return true;
-        if (min != null && x.key.compareTo(min) <= 0) return false;
-        if (max != null && x.key.compareTo(max) >= 0) return false;
-        return isBST(x.left, min, x.key) && isBST(x.right, x.key, max);
-    } 
-
-    // are the size fields correct?
-    private boolean isSizeConsistent() { return isSizeConsistent(root); }
-    private boolean isSizeConsistent(Node x) {
-        if (x == null) return true;
-        if (x.N != size(x.left) + size(x.right) + 1) return false;
-        return isSizeConsistent(x.left) && isSizeConsistent(x.right);
-    } 
-
-    // check that ranks are consistent
-    private boolean isRankConsistent() {
-        for (int i = 0; i < size(); i++)
-            if (i != rank(select(i))) return false;
-        for (Key key : keys())
-            if (key.compareTo(select(rank(key))) != 0) return false;
-        return true;
-    }
-
-    // Does the tree have no red right links, and at most one (left)
-    // red links in a row on any path?
-    private boolean is23() { return is23(root); }
-    private boolean is23(Node x) {
-        if (x == null) return true;
-        if (isRed(x.right)) return false;
-        if (x != root && isRed(x) && isRed(x.left))
-            return false;
-        return is23(x.left) && is23(x.right);
-    } 
-
-    // do all paths from root to leaf have same number of black edges?
-    private boolean isBalanced() { 
-        int black = 0;     // number of black links on path from root to min
-        Node x = root;
-        while (x != null) {
-            if (!isRed(x)) black++;
-            x = x.left;
-        }
-        return isBalanced(root, black);
-    }
-
-    // does every path from the root to a leaf have the given number of black links?
-    private boolean isBalanced(Node x, int black) {
-        if (x == null) return black == 0;
-        if (!isRed(x)) black--;
-        return isBalanced(x.left, black) && isBalanced(x.right, black);
     }
 }

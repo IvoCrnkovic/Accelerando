@@ -34,7 +34,7 @@ public class TrendingTweetPuller {
     	for(;;)
     	{
     		numTweets = 0;
-    		System.out.println(tweetTable.getSize() + " SuperTweets currently in TweetTable.");
+    		System.out.println(tweetTable.size() + " SuperTweets currently in TweetTable.");
     		
     		// Create Backup
     		System.out.print("Backing Up... ");

@@ -1,6 +1,5 @@
 import java.util.Arrays;
 import java.util.Date;
-import java.util.Iterator;
 /**
  * Class for storing SuperTweets
  */
@@ -21,11 +20,23 @@ public class TweetTable implements java.io.Serializable
 		tweetHolder = new RBBST<Long, SuperTweet>();
 		size = 0;
 	}
-	public int getSize()
+	public int size()
 	{
 		return size;
 	}
-
+	
+	public int subjectSize(String subject)
+	{
+		if (tweetTable.contains(subject))
+			return tweetTable.get(subject).size();
+		return 0;
+	}
+	public int subjectSize(String subject, Date startDate, Date endDate)
+	{
+		if (tweetTable.contains(subject))
+			return tweetTable.get(subject).size(startDate, endDate);
+		return 0;
+	}
 	/**
 	 * Method to add a supertweet to the table.
 	 * 
@@ -55,7 +66,10 @@ public class TweetTable implements java.io.Serializable
 			size++;
 		}
 	}
-
+	public Queue<String> getSubjects()
+	{
+		return (Queue<String>) tweetTable.keys();
+	}
 
 	/**
 	 * Method for creating iterators to go through the hash table.
@@ -87,34 +101,66 @@ public class TweetTable implements java.io.Serializable
 	}
 	public Queue<SuperTweet> getTweets(String[] subjects, Date startDate, Date endDate)
 	{
-		SuperTweet[] targetTweets;
-		Queue<SuperTweet> currentTweets;
-		SuperTweet[] currentArray;
-		int j = 0;
+		Queue<SuperTweet> currentTweets, targetTweets = new Queue<SuperTweet>();
+		String[] currentTags;
+		SuperTweet currentTweet;
+		int foundIndex, size;
+		boolean found;
 		if (subjects.length == 0)
-			return new Queue<SuperTweet>();
+			return targetTweets;
 		Arrays.sort(subjects);
 		currentTweets = getTweets(subjects[0], startDate, endDate);
-		targetTweets = new SuperTweet[currentTweets.size()];
-		for (SuperTweet s : currentTweets)
+		size = currentTweets.size();
+		for (int i = 0; i < size; i++)
 		{
-			targetTweets[j] = s;
-			j++;
+			foundIndex = 0;
+			found = true;
+			currentTweet = currentTweets.dequeue();
+			currentTags = currentTweet.getTags();
+			Arrays.sort(currentTags);
+			for (int k = 1; k < subjects.length; k++)
+			{
+				foundIndex = Arrays.binarySearch(currentTags, foundIndex, subjects.length - 1, subjects[k]);
+				if (foundIndex < 0)
+				{
+					found = false;
+					break;
+				}
+			}
+			if (found)
+				targetTweets.enqueue(currentTweet);
 		}
-		//TODO finish
+		return targetTweets;
 	}
 	/**
-	 * Returns the RBBST associated with a given subject
-	 * @param subject The subject of the tweets
-	 * @return the RBBST associated with subject
+	 * Returns All Tweets in TweetTable. Potentially very long (N lg N) runtime.
+	 * @return All Tweets
 	 */
-	public RBBST<Date, SuperTweet> getRBBST(String subject) 
+	public Queue<SuperTweet> getAllTweets()
 	{
-		return tweetTable.get(subject);
+		Queue<SuperTweet> allTweets = new Queue<SuperTweet>();
+		for (long t : tweetHolder.keys())
+		{
+			allTweets.enqueue(tweetHolder.get(t));
+		}
+		return allTweets;
 	}
-	
-	public TST<RBBST<Date, SuperTweet>> getTST()
+	/**
+	 * Returns All Tweets in TweetTable. Potentially very long (S * lg N * lg M) runtime.
+	 * @return All Tweets
+	 */
+	public Queue<SuperTweet> getAllTweets(Date startDate, Date endDate)
 	{
-		return tweetTable;
+		Queue<SuperTweet> allTweets = new Queue<SuperTweet>();
+		RBBST<Date, Long> current;
+		for (String s : tweetTable.keys())
+		{
+			current = tweetTable.get(s);
+			for (Date d : current.keys(startDate, endDate))
+			{
+				allTweets.enqueue(tweetHolder.get(current.get(d)));
+			}
+		}
+		return allTweets;
 	}
 }

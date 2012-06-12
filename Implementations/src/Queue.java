@@ -2,13 +2,13 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 public class Queue<Item> implements Iterable<Item>, java.io.Serializable{
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 9158794814265857142L;
 	private int N;         // number of elements on queue
     private Node first;    // beginning of queue
     private Node last;     // end of queue
     
     // helper linked list class
-    private class Node {
+    private class Node{
         private Item item;
         private Node next;
     }
@@ -20,7 +20,6 @@ public class Queue<Item> implements Iterable<Item>, java.io.Serializable{
         first = null;
         last  = null;
         N = 0;
-        assert check();
     }
 
    /**
@@ -57,7 +56,6 @@ public class Queue<Item> implements Iterable<Item>, java.io.Serializable{
         if (isEmpty()) first = last;
         else           oldlast.next = last;
         N++;
-        assert check();
     }
 
    /**
@@ -70,7 +68,6 @@ public class Queue<Item> implements Iterable<Item>, java.io.Serializable{
         first = first.next;
         N--;
         if (isEmpty()) last = null;   // to avoid loitering
-        assert check();
         return item;
     }
 
@@ -82,41 +79,7 @@ public class Queue<Item> implements Iterable<Item>, java.io.Serializable{
         for (Item item : this)
             s.append(item + " ");
         return s.toString();
-    } 
-
-    // check internal invariants
-    private boolean check() {
-        if (N == 0) {
-            if (first != null) return false;
-            if (last  != null) return false;
-        }
-        else if (N == 1) {
-            if (first == null || last == null) return false;
-            if (first != last)                 return false;
-            if (first.next != null)            return false;
-        }
-        else {
-            if (first == last)      return false;
-            if (first.next == null) return false;
-            if (last.next  != null) return false;
-
-            // check internal consistency of instance variable N
-            int numberOfNodes = 0;
-            for (Node x = first; x != null; x = x.next) {
-               numberOfNodes++;
-            }
-            if (numberOfNodes != N) return false;
-
-            // check internal consistency of instance variable last
-            Node lastNode = first;
-            while (lastNode.next != null) {
-               lastNode = lastNode.next;
-            }
-            if (last != lastNode) return false;
-        }
-
-        return true;
-    } 
+    }
  
 
    /**
@@ -127,7 +90,7 @@ public class Queue<Item> implements Iterable<Item>, java.io.Serializable{
     }
 
     // an iterator, doesn't implement remove() since it's optional
-    private class ListIterator implements Iterator<Item> {
+    private class ListIterator implements Iterator<Item>{
         private Node current = first;
 
         public boolean hasNext()  { return current != null;                     }
