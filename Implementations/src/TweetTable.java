@@ -20,22 +20,30 @@ public class TweetTable implements java.io.Serializable
 		tweetHolder = new RBBST<Long, SuperTweet>();
 		size = 0;
 	}
-	public int size()
+	public synchronized int size()
 	{
 		return size;
 	}
 	
-	public int subjectSize(String subject)
+	public synchronized int subjectSize(String subject)
 	{
 		if (tweetTable.contains(subject))
 			return tweetTable.get(subject).size();
 		return 0;
 	}
-	public int subjectSize(String subject, Date startDate, Date endDate)
+	public synchronized int subjectSize(String subject, Date startDate, Date endDate)
 	{
 		if (tweetTable.contains(subject))
 			return tweetTable.get(subject).size(startDate, endDate);
 		return 0;
+	}
+	public synchronized int subjectSize(String[] subject, Date startDate, Date endDate)
+	{
+		return getTweets(subject, startDate, endDate).size();
+	}
+	public synchronized int subjectSize(String[] subject)
+	{
+		return getTweets(subject).size();
 	}
 	/**
 	 * Method to add a supertweet to the table.
@@ -46,7 +54,7 @@ public class TweetTable implements java.io.Serializable
 	 * 
 	 * @param t The tweet to be added.
 	 */
-	public void add(SuperTweet t, String subject)
+	public synchronized void add(SuperTweet t, String subject)
 	{
 		long id = t.getTweet().getId();
 		if (subject == null | subject.length() == 0)
@@ -66,7 +74,7 @@ public class TweetTable implements java.io.Serializable
 			size++;
 		}
 	}
-	public Queue<String> getSubjects()
+	public synchronized Queue<String> getSubjects()
 	{
 		return (Queue<String>) tweetTable.keys();
 	}
@@ -82,7 +90,7 @@ public class TweetTable implements java.io.Serializable
 	 * @param endDate The latest time to be looked at.
 	 * @return The iterable.
 	 */
-	public Queue<SuperTweet> getTweets(String subject, Date startDate, Date endDate)
+	public synchronized Queue<SuperTweet> getTweets(String subject, Date startDate, Date endDate)
 	{
 		Queue<SuperTweet> q = new Queue<SuperTweet>();
 		RBBST<Date, Long> tree = tweetTable.get(subject);
@@ -99,7 +107,7 @@ public class TweetTable implements java.io.Serializable
 			return q;
 		}
 	}
-	public Queue<SuperTweet> getTweets(String[] subjects, Date startDate, Date endDate)
+	public synchronized Queue<SuperTweet> getTweets(String[] subjects, Date startDate, Date endDate)
 	{
 		Queue<SuperTweet> currentTweets, targetTweets = new Queue<SuperTweet>();
 		String[] currentTags;
@@ -132,11 +140,61 @@ public class TweetTable implements java.io.Serializable
 		}
 		return targetTweets;
 	}
+	public synchronized Queue<SuperTweet> getTweets(String subject)
+	{
+		Queue<SuperTweet> q = new Queue<SuperTweet>();
+		RBBST<Date, Long> tree = tweetTable.get(subject);
+		try
+		{
+			for (Date d : tree.keys())
+			{
+				q.enqueue(tweetHolder.get(tree.get(d)));
+			}
+			return q;
+		}
+		catch(NullPointerException e)
+		{
+			return q;
+		}
+	}
+	public synchronized Queue<SuperTweet> getTweets(String[] subjects)
+	{
+		Queue<SuperTweet> currentTweets, targetTweets = new Queue<SuperTweet>();
+		String[] currentTags;
+		SuperTweet currentTweet;
+		int foundIndex, size;
+		boolean found;
+		if (subjects.length == 0)
+			return targetTweets;
+		Arrays.sort(subjects);
+		currentTweets = getTweets(subjects[0]);
+		size = currentTweets.size();
+		for (int i = 0; i < size; i++)
+		{
+			foundIndex = 0;
+			found = true;
+			currentTweet = currentTweets.dequeue();
+			currentTags = currentTweet.getTags();
+			Arrays.sort(currentTags);
+			for (int k = 1; k < subjects.length; k++)
+			{
+				foundIndex = Arrays.binarySearch(currentTags, foundIndex, subjects.length - 1, subjects[k]);
+				if (foundIndex < 0)
+				{
+					found = false;
+					break;
+				}
+			}
+			if (found)
+				targetTweets.enqueue(currentTweet);
+		}
+		return targetTweets;
+	}
 	/**
 	 * Returns All Tweets in TweetTable. Potentially very long (N lg N) runtime.
 	 * @return All Tweets
 	 */
-	public Queue<SuperTweet> getAllTweets()
+	public synchronized Queue<SuperTweet> getAllTweets()
 	{
 		Queue<SuperTweet> allTweets = new Queue<SuperTweet>();
 		for (long t : tweetHolder.keys())
@@ -149,7 +207,7 @@ public class TweetTable implements java.io.Serializable
 	 * Returns All Tweets in TweetTable. Potentially very long (S * lg N * lg M) runtime.
 	 * @return All Tweets
 	 */
-	public Queue<SuperTweet> getAllTweets(Date startDate, Date endDate)
+	public synchronized Queue<SuperTweet> getAllTweets(Date startDate, Date endDate)
 	{
 		Queue<SuperTweet> allTweets = new Queue<SuperTweet>();
 		RBBST<Date, Long> current;

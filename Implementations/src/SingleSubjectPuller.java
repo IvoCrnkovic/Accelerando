@@ -7,15 +7,12 @@ import java.util.*;
 import twitter4j.*;
 
 public class SingleSubjectPuller {
-	public static TweetTable singleSubjectPull(String subject, TweetTable tweetTable, TST<PolarityValue> wordPolarities) throws UnsuccessfulOperationException
+	public static void singleSubjectPull(String subject, TweetTable tweetTable, TST<PolarityValue> wordPolarities, Twitter twitter) throws UnsuccessfulOperationException
 	{System.out.println("2");
 		// Number of tweets to pull
 		final int tweetsToPull = 100;
 
-		// Authenticate
-		System.out.print("Authenticating... ");
-		Twitter twitter = CollectionMethods.authenticate();
-		System.out.println("Done");
+		
 
 		// Instance Variables
 		Query query;
@@ -28,7 +25,7 @@ public class SingleSubjectPuller {
 
 
 		numTweets = 0;
-		System.out.println(tweetTable.getSize() + " SuperTweets currently in TweetTable.");
+		System.out.println(tweetTable.size() + " SuperTweets currently in TweetTable.");
 
 
 		// Gather Tweets
@@ -65,6 +62,5 @@ public class SingleSubjectPuller {
         	throw new UnsuccessfulOperationException();
         
         System.out.print("Finished Adding Tweets to TweetTable.\n" + totalNumTweets + " Tweets Added.");
-        return tweetTable;
 	}
 }

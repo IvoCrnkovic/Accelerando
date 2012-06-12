@@ -7,17 +7,12 @@
 import java.util.*;
 import twitter4j.*;
 
-public class TrendingTweetPuller {
-	public static TweetTable trendingTweetPull(TweetTable tweetTable, TST<PolarityValue> wordPolarities, String tweetTableFile, String tweetTableBackup) throws UnsuccessfulOperationException
+public class TrendingTweetPuller 
+{
+	public static void trendingTweetPull(TweetTable tweetTable, TST<PolarityValue> wordPolarities, String tweetTableFile, String tweetTableBackup, Twitter twitter)
 	{
 		// Number of tweets from each subject to pull
 		final int tweetsToPull = 100;
-		
-		
-		// Authenticate
-		System.out.print("Authenticating... ");
-		Twitter twitter = CollectionMethods.authenticate();
-		System.out.println("Done");
         
 		// Instance Variables
         ResponseList<Trends> trendsList;
@@ -27,7 +22,6 @@ public class TrendingTweetPuller {
     	TweetEvaluator tweetEvaluator;
     	Queue<CollectionMethods.TweetHolder> toBeAdded = new Queue<CollectionMethods.TweetHolder>();
         tweetEvaluator = new TweetEvaluator(wordPolarities);
-        
     	
     	
     	// Process Loop

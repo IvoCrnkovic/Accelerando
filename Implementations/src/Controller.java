@@ -1,147 +1,121 @@
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Date;
-import java.util.Calendar;
 import java.util.GregorianCalendar;
-import java.util.Iterator;
 import java.util.Scanner;
-
-import twitter4j.TwitterException;
-
-
-public class Controller {
-
-	/**
-	 * @param args
-	 * @throws ClassNotFoundException 
-	 * @throws IOException 
-	 * @throws FileNotFoundException 
-	 * @throws TwitterException 
-	 */
-	public static void main(String[] args) {
-		Scanner in = null;
-		Scanner stdIn = new Scanner(System.in);
-		GregorianCalendar origin = new GregorianCalendar();
-		TweetEvaluator tweetEvaluator;
-		TST<PolarityValue> wordPolarities = null;
-		final String wordsFile = "words.tst";
-		Object obj = null;
-		TST<SuperUser> users = null;
-		double finalSentiment = 0;
-		boolean enoughData = true;
-		Iterable<SuperTweet> targetTweets = null;
+import twitter4j.Twitter;
 
 
-		TweetTable tweets = null;
-		try {
-			tweets = (TweetTable) ObjectLoader.load("superTweets.data");
-		} catch (FileNotFoundException e3) {
-			System.err.println("FileNotFoundException: Failed to load TweetTable from " + "superTweets.data");
-			enoughData = false;
-		} catch (IOException e3) {
-			System.err.println("IOException: Failed to load TweetTable from " + "superTweets.data");
-			enoughData = false;
-		} catch (ClassNotFoundException e3) {
-			System.err.println("ClassNotFoundException: Failed to load TweetTable from " + "superTweets.data");
-			enoughData = false;
-		} 
-
-
-		//Get the subject
-		//System.out.println("Enter something to analyze!");
-		String subject = "Lady Gaga";
-		String [] subjects = subject.split(" ");
-
-
-		//Determine if we need to get more tweets on the entered subject.
-		Date endTime = origin.getTime();
-		origin.add(Calendar.HOUR_OF_DAY, -1);
-		Date startTime = origin.getTime();
-
-		int numberOfTweets = 0;
+public class Controller
+{
+	public static void main(String[] args) 
+	{
+		final String tweetTableFile		= "superTweets.data",
+					 tweetTableBackup	= "superTweetsBackup.data",
+					 wordPolaritiesFile = "words.tst";
+		TweetTable tweetTable;
+		TST<PolarityValue> wordPolarities;
 		
-		try
+		// Load
+		System.out.print("Loading... ");
+		tweetTable = CollectionMethods.<TweetTable>load(tweetTableFile);
+		wordPolarities = CollectionMethods.<TST<PolarityValue>>load(wordPolaritiesFile);
+		System.out.println("Done");
+		
+		// Authenticate
+		System.out.print("Authenticating... ");
+		Twitter twitter = CollectionMethods.authenticate();
+		System.out.println("Done");
+		
+		Thread trendingTweetPuller = new Thread(new TrendingTweetPull(tweetTable, wordPolarities, 
+												tweetTableFile, tweetTableBackup, twitter));
+		Thread Client = new Thread(new Client(tweetTable, wordPolarities, tweetTableFile, 
+											  tweetTableBackup, twitter));
+		Client.start();
+		trendingTweetPuller.start();
+	}
+	private static class TrendingTweetPull implements Runnable
+	{
+		TweetTable tweetTable;
+		TST<PolarityValue> wordPolarities;
+		String tweetTableFile, tweetTableBackup;
+		Twitter twitter;
+		public TrendingTweetPull(TweetTable tweetTable, TST<PolarityValue> wordPolarities, 
+								 String tweetTableFile, String tweetTableBackup, Twitter twitter)
 		{
-			targetTweets = tweets.getTweets(subjects, startTime, endTime);
-
-			for (SuperTweet tweet : targetTweets)
+			this.tweetTable = tweetTable;
+			this.wordPolarities = wordPolarities;
+			this.tweetTableFile = tweetTableFile;
+			this.tweetTableBackup = tweetTableBackup;
+			this.twitter = twitter;
+		}
+		public void run() {
+			TrendingTweetPuller.trendingTweetPull(tweetTable, wordPolarities, tweetTableFile, 
+												  tweetTableBackup, twitter);
+		}
+	}
+	private static class Client implements Runnable
+	{
+		TweetTable tweetTable;
+		TST<PolarityValue> wordPolarities;
+		String tweetTableFile, tweetTableBackup;
+		Twitter twitter;
+		public Client(TweetTable tweetTable, TST<PolarityValue> wordPolarities, String tweetTableFile, 
+					  String tweetTableBackup, Twitter twitter)
+		{
+			this.tweetTable = tweetTable;
+			this.wordPolarities = wordPolarities;
+			this.tweetTableFile = tweetTableFile;
+			this.tweetTableBackup = tweetTableBackup;
+			this.twitter = twitter;
+		}
+		public void run() {
+			double polarization = 0;
+			String input = "";
+			Scanner in = new Scanner(System.in);
+			GregorianCalendar c = new GregorianCalendar();
+			c.set(2012, 6, 7);
+			int num = 0;
+			do
 			{
-				numberOfTweets++;
-			}
-		}
-		catch (NullPointerException e)
-		{
-			enoughData = false;
-		}
-		//decide if we have enough data and if not run single subject puller
-		if (numberOfTweets < 10)
-		{
-			enoughData = false;
-		}
-
-		//Now that we have enough data, its time to actually do some analysis.
-
-		//If we added tweets, we have to again go to the database and grab all the 
-		//tweets that meet each subject.
-		if (!enoughData)
-		{
-			for (int i = 0; i < subjects.length; i++)
-			{
-				try {
-					SingleSubjectPuller.singleSubjectPull(subjects[i]);
-				} catch (TwitterException e) {
-					System.err.println("Twitter Exception");
-					e.printStackTrace();
+				try
+				{
+					polarization = 0;
+					num = 0;
+					System.out.print("Input: ");
+					input = in.next();
+					if (input.equals("save"))
+					{
+						System.out.println("Saving...");
+						CollectionMethods.save(tweetTable, tweetTableFile);
+						System.out.println("Done");
+						continue;
+					}
+					if (input.equals("show"))
+					{
+						for (String s : tweetTable.getSubjects())
+							System.out.println(s + ": " + tweetTable.subjectSize(s));
+						continue;
+					}
+					try {
+						SingleSubjectPuller.singleSubjectPull(input, tweetTable, wordPolarities, twitter);
+					} catch (UnsuccessfulOperationException e) {
+						System.err.println("Single Subject Pull Unsuccessful");
+					}
+					System.out.println("\nSize = " + tweetTable.subjectSize(input));
+					for (SuperTweet tweet : tweetTable.getTweets(input))
+					{
+						polarization += tweet.getPolarization();
+						num++;
+					}
+					polarization /= num;
+					System.out.println("Polarization: " + polarization);
+				}
+				catch (NullPointerException e)
+				{
+					System.out.println("Not Found");
 				}
 			}
-			targetTweets = tweets.getTweets(subjects, startTime, endTime);
+			while (true);
+			
 		}
-
-
-		try {
-			obj = ObjectLoader.load(wordsFile);
-		} catch (FileNotFoundException e3) {
-			System.err.println("FileNotFoundException: Failed to load Word Polarizations from " + wordsFile);
-			System.exit(0);
-		} catch (IOException e3) {
-			System.err.println("IOException: Failed to load Word Polarizations from " + wordsFile);
-			System.exit(0);
-		} catch (ClassNotFoundException e3) {
-			System.err.println("ClassNotFoundException: Failed to load Word Polarizations from " + wordsFile);
-			System.exit(0);
-		} 
-		if (obj instanceof TST<?>)
-			wordPolarities = (TST<PolarityValue>) obj;
-		else
-		{
-			System.err.println("Class Mismatch: Failed to load Word Polarizations from " + wordsFile);
-			System.exit(0);
-		}
-		if (obj instanceof TST<?>)
-			users = (TST<SuperUser>) obj;
-
-		tweetEvaluator = new TweetEvaluator(wordPolarities, users);
-
-		double totalWeight = 0;
-		double totalSentiment = 0;
-		double sentiment = 0;
-		double weight = 0;
-
-		for (SuperTweet tweet : targetTweets)
-		{
-			try {
-				sentiment = tweetEvaluator.calculatePolarization(tweet);
-				weight = tweetEvaluator.calculateWeight(tweet);
-			} catch (TwitterException e) {
-				System.err.println("Twitter Exception");
-				e.printStackTrace();
-			}
-			totalWeight += weight;
-			totalSentiment += sentiment * weight;
-		}
-		finalSentiment = totalSentiment / totalWeight;
-
-		System.out.println("finalSentiment is " + finalSentiment);
-
+		
 	}
 }
