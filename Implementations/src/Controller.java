@@ -2,7 +2,7 @@ import java.util.GregorianCalendar;
 import java.util.Scanner;
 import twitter4j.Twitter;
 
-
+//TODO Work out Rate Limits
 public class Controller
 {
 	public static void main(String[] args) 
@@ -28,8 +28,10 @@ public class Controller
 												tweetTableFile, tweetTableBackup, twitter));
 		Thread Client = new Thread(new Client(tweetTable, wordPolarities, tweetTableFile, 
 											  tweetTableBackup, twitter));
-		Client.start();
+		Client.setPriority(Thread.MAX_PRIORITY);
+		trendingTweetPuller.setPriority(Thread.MIN_PRIORITY);
 		trendingTweetPuller.start();
+		Client.start();
 	}
 	private static class TrendingTweetPull implements Runnable
 	{

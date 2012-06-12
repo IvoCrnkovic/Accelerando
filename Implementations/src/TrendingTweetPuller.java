@@ -22,11 +22,13 @@ public class TrendingTweetPuller
     	TweetEvaluator tweetEvaluator;
     	Queue<CollectionMethods.TweetHolder> toBeAdded = new Queue<CollectionMethods.TweetHolder>();
         tweetEvaluator = new TweetEvaluator(wordPolarities);
-    	
+    	long start = System.currentTimeMillis();
     	
     	// Process Loop
     	for(;;)
     	{
+    		System.out.println("Elapsed Time: " + ((System.currentTimeMillis() - start)/1000.0));
+    		start = System.currentTimeMillis();
     		numTweets = 0;
     		System.out.println(tweetTable.size() + " SuperTweets currently in TweetTable.");
     		
