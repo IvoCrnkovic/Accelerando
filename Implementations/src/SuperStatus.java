@@ -1,24 +1,23 @@
-import twitter4j.Tweet;
+import twitter4j.Status;
 import twitter4j.TwitterException;
-import twitter4j.User;
 
 /**
  * SuperTweet extension of Tweet class.  Added polarization and weight fields and extended all existing fields and methods.
  */
-public class SuperTweet implements java.io.Serializable{
-	/**
-	 *Serial ID number that eclipse told us to use for serialization.  Don't really know what it does.
-	 *@see Java.io.Serializable
-	 */
-	private static final long serialVersionUID = -7918283392747206072L;
+public class SuperStatus implements java.io.Serializable{
 	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -1476580968646201952L;
+
 	/**
 	 *The Tweet object that was extended to create the superTweet.
 	 *
 	 *@see Tweet
 	 *@see superTweet.getTweet()
 	 */
-	private final Tweet tweet;
+	private final Status status;
 	
 	/**
 	 *The calculated polarization of the superTweet.  Runs from -5 to 5, the larger number representing a more positive outlook on the subject.
@@ -38,15 +37,6 @@ public class SuperTweet implements java.io.Serializable{
 	 */
 	private double weight = 0;
 	
-	/**
-	 *The polarization score given to the tweet in the initial voting process.
-	 *
-	 *@see PolarityGenerator
-	 */
-	private int vote;
-	
-	private final User user;
-	
 	private String[] tags;
 	
 	/**
@@ -59,11 +49,9 @@ public class SuperTweet implements java.io.Serializable{
 	 * @see    Tweet
 	 */
 	
-	public SuperTweet(Tweet newTweet, User user, String[] tags, TweetEvaluator eval) throws TwitterException
+	public SuperStatus(Status status, String[] tags, TweetEvaluator eval) throws TwitterException
 	{
-		tweet = newTweet;
-		vote = 0;
-        this.user = user;
+		this.status = status;
         this.tags = tags;
 		polarization = eval.calculatePolarization(this);
 		weight = eval.calculateWeight(this);
@@ -78,8 +66,8 @@ public class SuperTweet implements java.io.Serializable{
 	 * @see    Tweet.compareTo()
 	 */
 	
-	public int compareTo(Tweet o) {
-		return tweet.compareTo(o);
+	public int compareTo(Status o) {
+		return status.compareTo(o);
 	}
 	
 	/**
@@ -89,9 +77,9 @@ public class SuperTweet implements java.io.Serializable{
 	 * @return the Tweet object that was extended.
 	 * @see    Tweet
 	 */
-	public Tweet getTweet()
+	public Status getStatus()
 	{
-		return tweet;
+		return status;
 	}
 	
 	/**
@@ -113,20 +101,6 @@ public class SuperTweet implements java.io.Serializable{
 	{
 		polarization = d;
 	}
-	
-	public int getVote()
-	{
-		return vote;
-	}
-	
-	public void setVote(int v)
-	{
-		vote = v;
-	}
-	public User getUser()
-	{
-		return user;
-	}
 	public String[] getTags()
 	{
 		return tags;
@@ -141,19 +115,17 @@ public class SuperTweet implements java.io.Serializable{
 	    if (y == null) return false;
 	    if (y.getClass() != this.getClass())
 	       return false;
-	    SuperTweet that = (SuperTweet) y;
+	    SuperStatus that = (SuperStatus) y;
 	    if (this.polarization != that.polarization) return false;
-	    if (this.vote != that.vote) return false;
 	    if (this.weight != that.weight) return false;
-	    if (!this.tweet.equals(that.tweet)) return false;
-	    if (!this.user.equals(that.user)) return false;
+	    if (!this.status.equals(that.status)) return false;
+	    if (!this.tags.equals(that.tags)) return false;
 	    return true;
 	}
 	public int hashCode()
 	{
 		int hash = 13;
-		hash = 31 * hash + tweet.hashCode();
-		hash = 31 * hash + user.hashCode();
+		hash = 31 * hash + status.hashCode();
 	    return hash;
 	}
 }

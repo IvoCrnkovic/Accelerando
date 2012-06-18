@@ -5,7 +5,7 @@
 
 import java.util.*;
 import twitter4j.*;
-
+//TODO Check that tweets are added to permanent TweetTable
 public class SingleSubjectPuller {
 	public static void singleSubjectPull(String subject, TweetTable tweetTable, TST<PolarityValue> wordPolarities, Twitter twitter) throws UnsuccessfulOperationException
 	{System.out.println("2");
@@ -55,7 +55,7 @@ public class SingleSubjectPuller {
 		System.out.println("Done.\n" + numTweets + " Tweets Collected.\nAdding Tweets to TweetTable... ");
 
 
-		//Add Tweets to TweetTable Based Around Rate Limit
+		//Add Tweets to TweetTable
         totalNumTweets = CollectionMethods.addToTweetTable(toBeAdded, tweetTable, twitter,
         												   tweetEvaluator);
         if (totalNumTweets == 0)

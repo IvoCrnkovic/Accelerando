@@ -33,7 +33,6 @@ public class RBBST <Key extends Comparable<Key>, Value> implements java.io.Seria
     	 *Serial ID number that eclipse told us to use for serialization.  Don't really know what it does.
     	 *@see Java.io.Serializable
     	 */
-    	private static final long serialVersionUID = -2589482579176328609L;
 		
     	/**
     	 * Key type

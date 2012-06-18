@@ -8,6 +8,6 @@ import twitter4j.*;
 public class Test { 
 	public static void main(String[] args) throws FileNotFoundException, IOException, ClassNotFoundException
 	{
-		ObjectLoader.save(new TweetTable(), "superTweets.data");
+		ObjectLoader.save(new StatusTable(), "StatusTable.stb");
 	}
 }
