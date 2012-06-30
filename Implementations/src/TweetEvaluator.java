@@ -32,8 +32,8 @@ public class TweetEvaluator {
 		return determineSentiment(tweet.getTweet().getText());
 	}
 	
-	public double calculatePolarization(SuperStatus status) {
-		return determineSentiment(status.getStatus().getText());
+	public double calculatePolarization(Status status) {
+		return determineSentiment(status.getText());
 	}
 	
 	
@@ -56,17 +56,17 @@ public class TweetEvaluator {
         return Math.log10(total+2);
 	}
 	
-	public double calculateWeight(SuperStatus status) throws TwitterException 
+	public double calculateWeight(Status status)
 	{
-        long numFollowers= status.getStatus().getUser().getFollowersCount();
-        long numListed   = status.getStatus().getUser().getListedCount();
-        long numRetweeted = status.getStatus().getRetweetCount();
+        long numFollowers= status.getUser().getFollowersCount();
+        long numListed   = status.getUser().getListedCount();
+        long numRetweeted = status.getRetweetCount();
         double total;
         if (numRetweeted == -1)
         	total = numFollowers + numListed;
         else
         	total = numFollowers + numListed + numRetweeted;
-        if (status.getStatus().isFavorited())
+        if (status.isFavorited())
         	total *= 2;
         
         return Math.log10(total+2);

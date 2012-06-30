@@ -1,5 +1,11 @@
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Properties;
 import java.util.Scanner;
 import twitter4j.FilterQuery;
 import twitter4j.StatusStream;
@@ -20,6 +26,7 @@ public class Controller
 	static ArrayList<String> track = new ArrayList<String>();
 	static ArrayList<Thread> streamThreads = new ArrayList<Thread>();
 	static TwitterStream twitterStream;
+	static Connection con;
 	static StatusListener listener = new StatusListener(){
 	    public void onStatus(Status status)
 	    {
@@ -40,12 +47,20 @@ public class Controller
 			System.err.println("ScrubGeo");
 	    }
 	};
-	public static void main(String[] args) 
+	
+	public static void main(String[] args) throws SQLException 
 	{
 		TST<PolarityValue> wordPolarities;
 		
 		// Load
 		System.out.print("Loading... ");
+		try {
+			con = getConnection("/Users/Antonio/My Documents/Startup/Database/");
+			//createTweetTable();
+		} catch (SQLException e1) {
+			System.out.println(e1);
+			System.exit(0);
+		}
 		statusTable = CollectionMethods.<StatusTable>load(statusTableFile);
 		wordPolarities = CollectionMethods.<TST<PolarityValue>>load(wordPolaritiesFile);
 		tweetEvaluator = new TweetEvaluator(wordPolarities);
@@ -88,37 +103,96 @@ public class Controller
 				}
 			}
 		}
-		
 	}
+	
+	public static void createTweetTable() throws SQLException {
+	    String createString =
+	        "CREATE CACHED TABLE TWEETS " +
+	        "(ID bigint NOT NULL, " +
+	        "TEXT varchar(200) NOT NULL, " +
+	        "RETWEET_COUNT int NOT NULL, " +
+	        "IS_RETWEET boolean NOT NULL, " +
+	        "IS_FAVORITED boolean NOT NULL, " +
+	        "USER_ID bigint NOT NULL, " +
+	        "COUNTRY_CODE varchar(10), " +
+	        "LATTITUDE float, " +
+	        "LONGITUDE float, " +
+	        "POLARIZATION float NOT NULL, " +
+	        "WEIGHT float NOT NULL, " +
+	        "PRIMARY KEY (ID))";
+
+	    Statement stmt = null;
+	    try {
+	        stmt = con.createStatement();
+	        stmt.executeUpdate(createString);
+	    } 
+	    finally {
+	        if (stmt != null) { stmt.close(); }
+	    }
+	}
+/*
+	public static void createUserTable() throws SQLException
+	{
+	    String createString =
+		        "CREATE CACHED TABLE " + "accelerandoDB" + ".USERS " +
+		        "(ID bigint NOT NULL, " +
+		        "FOLLOWERS integer NOT NULL, " +
+		        "FRIENDS integer NOT NULL, " +
+		        "LISTED_COUNT integer NOT NULL, " +
+		        "NAME varchar(40), " +
+		        "SCREEN_NAME varchar(30) NOT NULL, " +
+		        "PRIMARY KEY (ID))";
+
+		    Statement stmt = null;
+		    try {
+		        stmt = con.createStatement();
+		        stmt.executeUpdate(createString);
+		    }
+		    finally {
+		        if (stmt != null) { stmt.close(); }
+		    }
+	}
+	
+*/	public static Connection getConnection(String location) throws SQLException {
+
+	    Connection conn = null;
+	    Properties connectionProps = new Properties();
+	    connectionProps.put("user", "ajuliano");
+	    connectionProps.put("password", "accelerando");
+	    conn = DriverManager.getConnection("jdbc:hsqldb:file:" + location + "accelerandoDB;shutdown=true", connectionProps);
+	    System.out.println("Connected to database");
+	    return conn;
+	}
+	
 	private static class TweetTableAdder implements Runnable
 	{
 		public void run() 
 		{
+			PreparedStatement statusDBUpdate = null;
+			//PreparedStatement userDBUpdate = null;
+			try {
+				statusDBUpdate = con.prepareStatement("insert into TWEETS " +
+				        "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+				/*userDBUpdate = con.prepareStatement("insert into accelerandoDB.USERS " + 
+				        "values(?, ?, ?, ?, ?, ?)");*/
+			} catch (SQLException e1) {
+				System.out.println(e1);
+				System.err.println("SQLException: Failed to Create Prepared Statement");
+			}
 			Status current;
-			String text;
-			String[] words;
 			for(;;)
 			{
 				if (!toBeAdded.isEmpty())
 				{
 					current = toBeAdded.dequeue();
-					text = current.getText();
-		    		text = text.replaceAll("http:\\/\\/t.co\\/........", " ");
-		    		text = text.toLowerCase();
-		    		words = text.split("(\\W)+");
-					
-					//TODO Add subject to tags list
-					try {
-						statusTable.add(new SuperStatus(current, words, tweetEvaluator));
-					} catch (TwitterException e) {
-					}
+					statusTable.add(current, tweetEvaluator, statusDBUpdate);
 				} 
 				
 				else
 				{
 					try 
 					{
-						Thread.sleep(1000);
+						Thread.sleep(100);
 					} 
 					catch (InterruptedException e) 
 					{
@@ -137,114 +211,130 @@ public class Controller
 			Scanner in = new Scanner(System.in);
 			do
 			{
-					System.out.print("Input: ");
+				System.out.print("Input: ");
+				input = in.nextLine();
+				System.out.println();
+				if (input.equals("save"))
+				{
+					System.out.println("Saving...");
+					CollectionMethods.save(statusTable, statusTableFile);
+					System.out.println("Done");
+					continue;
+				}
+				if (input.equals("backup"))
+				{
+					System.out.println("Backing Up...");
+					CollectionMethods.backup(statusTableFile, statusTableBackup);
+					System.out.println("Done");
+					continue;
+				}
+				if (input.equals("show"))
+				{
+					for (String s : statusTable.getSubjects())
+						System.out.println(s + ": " + statusTable.subjectSize(s));
+					continue;
+				}
+				if (input.equals("size"))
+				{
+					System.out.println("Size: " + statusTable.size());
+					continue;
+				}
+				if (input.equals("memory"))
+				{
+					System.out.println("Total Memory: " + Runtime.getRuntime().totalMemory() / 1000000 + " MB");
+					System.out.println("Free Memory: " + Runtime.getRuntime().freeMemory() / 1000000 + " MB");
+					continue;
+				}
+				if (input.equals("open stream"))
+				{
+					System.out.print("Subject: ");
+					input = in.nextLine().toLowerCase();
+					System.out.println();
+					if (track.contains(input))
+					{
+						System.out.println("Stream Already Exists");
+						continue;
+					}
+					track.add(input);
+					query = new FilterQuery();
+					query.track(input.split(" "));
+					try {
+						thread = new Thread(new SubjectStream(twitterStream.getFilterStream(query), track.indexOf(input)));
+					} catch (TwitterException e) {
+						System.err.println("Twitter Exception: Unable to open stream");
+						continue;
+					}
+					streamThreads.add(thread);
+					thread.setPriority(Thread.MIN_PRIORITY);
+					thread.start();
+					continue;
+				}
+				if (input.equals("show streams"))
+				{
+					for (String s : track)
+						System.out.println(s);
+					continue;
+				}
+				if (input.equals("close stream"))
+				{
+					System.out.print("Subject: ");
 					input = in.nextLine();
 					System.out.println();
-					if (input.equals("save"))
+					int index = track.indexOf(input);
+					if (index == -1)
 					{
-						System.out.println("Saving...");
-						CollectionMethods.save(statusTable, statusTableFile);
-						System.out.println("Done");
+						System.out.println("Not Found");
 						continue;
 					}
-					if (input.equals("backup"))
+					track.remove(index);
+					streamThreads.get(index).interrupt();
+					continue;
+				}
+				if (input.equals("queue size"))
+				{
+					System.out.println("Queue Size: " + toBeAdded.size());
+					continue;
+				}
+				if (input.equals("exit"))
+				{
+					synchronized (this)
 					{
-						System.out.println("Backing Up...");
 						CollectionMethods.backup(statusTableFile, statusTableBackup);
-						System.out.println("Done");
-						continue;
-					}
-					if (input.equals("show"))
-					{
-						for (String s : statusTable.getSubjects())
-							System.out.println(s + ": " + statusTable.subjectSize(s));
-						continue;
-					}
-					if (input.equals("size"))
-					{
-						System.out.println("Size: " + statusTable.size());
-						continue;
-					}
-					if (input.equals("memory"))
-					{
-						System.out.println("Total Memory: " + Runtime.getRuntime().totalMemory() / 1000000 + " MB");
-						System.out.println("Free Memory: " + Runtime.getRuntime().freeMemory() / 1000000 + " MB");
-						continue;
-					}
-					if (input.equals("open stream"))
-					{
-						System.out.print("Subject: ");
-						input = in.nextLine().toLowerCase();
-						System.out.println();
-						if (track.contains(input))
-						{
-							System.out.println("Stream Already Exists");
-							continue;
-						}
-						track.add(input);
-						query = new FilterQuery();
-						query.track(input.split(" "));
+						CollectionMethods.save(statusTable, statusTableFile);
 						try {
-							thread = new Thread(new SubjectStream(twitterStream.getFilterStream(query), track.indexOf(input)));
-						} catch (TwitterException e) {
-							System.err.println("Twitter Exception: Unable to open stream");
-							continue;
+							Statement s = con.createStatement();
+							s.execute("SHUTDOWN");
+						} catch (SQLException e) {
+							System.err.println("SQLException: Shutdown Failed");
 						}
-						streamThreads.add(thread);
-						thread.setPriority(Thread.MIN_PRIORITY);
-						thread.start();
-						continue;
+						System.exit(0);
 					}
-					if (input.equals("show streams"))
+				}
+					/*
+				if (input.equals("p"))
+				{
+					String subject;
+					int num = 0;
+					double polarization = 0;
+					System.out.print("Subject: ");
+					subject = in.nextLine().toLowerCase();
+					System.out.println();
+					if (subject == null || subject.equals(""))
 					{
-						for (String s : track)
-							System.out.println(s);
+						System.err.println("Illegal Key");
 						continue;
 					}
-					if (input.equals("close stream"))
+					System.out.println("Subject Size = " + statusTable.subjectSize(subject.split(" ")));
+					for (SuperStatus s : statusTable.getTweets(subject.split(" ")))
 					{
-						System.out.print("Subject: ");
-						input = in.nextLine();
-						System.out.println();
-						int index = track.indexOf(input);
-						if (index == -1)
-						{
-							System.out.println("Not Found");
-							continue;
-						}
-						track.remove(index);
-						streamThreads.get(index).interrupt();
-						continue;
+						polarization += s.getPolarization() * s.getWeight();
+						num++;
 					}
-					if (input.equals("queue size"))
-					{
-						System.out.println("Queue Size: " + toBeAdded.size());
-						continue;
-					}
-					if (input.equals("p"))
-					{
-						String subject;
-						int num = 0;
-						double polarization = 0;
-						System.out.print("Subject: ");
-						subject = in.nextLine().toLowerCase();
-						System.out.println();
-						if (subject == null || subject.equals(""))
-						{
-							System.err.println("Illegal Key");
-							continue;
-						}
-						System.out.println("Subject Size = " + statusTable.subjectSize(subject.split(" ")));
-						for (SuperStatus s : statusTable.getTweets(subject.split(" ")))
-						{
-							polarization += s.getPolarization() * s.getWeight();
-							num++;
-						}
-						if (num != 0)
-							polarization /= (double) num;
-						System.out.println("Polarization = " + polarization);
-						continue;
-					}
+					if (num != 0)
+						polarization /= (double) num;
+					System.out.println("Polarization = " + polarization);
+					continue;
+				}*/
 			}
 			while (true);
 		}

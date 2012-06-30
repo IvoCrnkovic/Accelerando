@@ -1,21 +1,27 @@
-import java.util.Arrays;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import twitter4j.Status;
+import twitter4j.User;
 /**
- * Class for storing SuperTweets
+ * Class for storing Statuses
  */
-//TODO Optimize memory
 public class StatusTable implements java.io.Serializable
 {
 	private static final long serialVersionUID = -4330239673197534165L;
 	
-	private final TST<RBBST<Date, SuperStatus>> tweetTable;
-	private int size;
+	private final TST<RBBST<Long, Long>> tweetTable;
+	private long size;
+	
 	public StatusTable()
 	{
-		tweetTable = new TST<RBBST<Date, SuperStatus>>();
-		size = 0;
+		tweetTable = new TST<RBBST<Long, Long>>();
+		size = 0L;
 	}
-	public synchronized int size()
+	
+	public synchronized long size()
 	{
 		return size;
 	}
@@ -26,25 +32,86 @@ public class StatusTable implements java.io.Serializable
 			return tweetTable.get(subject).size();
 		return 0;
 	}
+	
 	public synchronized int subjectSize(String subject, Date startDate, Date endDate)
 	{
 		if (tweetTable.contains(subject))
-			return tweetTable.get(subject).size(startDate, endDate);
+			return tweetTable.get(subject).size(startDate.getTime(), endDate.getTime());
 		return 0;
 	}
+	
 	public synchronized int subjectSize(String[] subject, Date startDate, Date endDate)
 	{
 		return getTweets(subject, startDate, endDate).size();
 	}
+	
 	public synchronized int subjectSize(String[] subject)
 	{
 		return getTweets(subject).size();
 	}
-	public synchronized void add(SuperStatus t)
+	
+	public synchronized void add(Status t, TweetEvaluator eval, PreparedStatement s)
 	{
-		String[] tags = t.getTags();
-		if (tags == null || tags.length == 0)
+		if (t == null)
 			return;
+		User user = t.getUser();
+		
+		//Add to Database
+		/*
+		try
+		{
+			u.setLong(1, user.getId());
+			u.setInt(2, user.getFollowersCount());
+			u.setInt(3, user.getFriendsCount());
+			u.setInt(4, user.getListedCount());
+			u.setString(5, user.getName());
+			u.setString(6, user.getScreenName());
+			u.executeUpdate();
+		}
+		catch (SQLException e1)
+		{
+			System.err.println("SQLException: Unable to Add to User Database");
+			return;
+		}
+		*/
+		try
+		{
+			s.setLong(1, t.getId());
+			s.setString(2, t.getText());
+			s.setInt(3, (int) t.getRetweetCount());
+			s.setBoolean(4, t.isRetweet());
+			s.setBoolean(5, t.isFavorited());
+			s.setLong(6, user.getId());
+			if (t.getPlace() != null)
+				s.setString(7, t.getPlace().getCountryCode());
+			else
+				s.setString(7, null);
+			if (t.getGeoLocation() != null)
+			{
+				s.setDouble(8, t.getGeoLocation().getLatitude());	
+				s.setDouble(9, t.getGeoLocation().getLongitude());
+			}
+			else
+			{
+				s.setDouble(8, Double.NaN);
+				s.setDouble(9, Double.NaN);
+			}
+			s.setDouble(10, eval.calculatePolarization(t));
+			s.setDouble(11, eval.calculateWeight(t));
+			s.executeUpdate();
+		}
+		catch (SQLException e1)
+		{
+			System.err.println("SQLException: Unable to Add to Status Database");
+			return;
+		}
+		
+		//UPDATE
+		String text;
+		text = t.getText();
+		text = text.replaceAll("http:\\/\\/t.co\\/........", " ");
+		text = text.toLowerCase();
+		String[] tags = text.split("(\\W)+");
 		for (int i = 0; i < tags.length; i++)
 		{
 			if (tags[i] == null | tags[i].length() == 0)
@@ -52,195 +119,149 @@ public class StatusTable implements java.io.Serializable
 				return;
 			}
 			if (tweetTable.contains(tags[i]))
-				tweetTable.get(tags[i]).put(t.getStatus().getCreatedAt(), t);
+				tweetTable.get(tags[i]).put(t.getCreatedAt().getTime(), t.getId());
 			else
 			{
-				tweetTable.put(tags[i], new RBBST<Date, SuperStatus>());
-				tweetTable.get(tags[i]).put(t.getStatus().getCreatedAt(), t);
+				tweetTable.put(tags[i], new RBBST<Long, Long>());
+				tweetTable.get(tags[i]).put(t.getCreatedAt().getTime(), t.getId());
 			}
 		}
+		
 		size++;
 	}
+	
 	public synchronized Queue<String> getSubjects()
 	{
 		return (Queue<String>) tweetTable.keys();
 	}
-
-	/**
-	 * Method for creating iterators to go through the hash table.
-	 * 
-	 * <p>
-	 * Creates an iterable that goes through all the tweets of a given subject from some start date to some end date.
-	 * 
-	 * @param subject The subject of the tweets desired.
-	 * @param startDate The earliest time to be looked at.
-	 * @param endDate The latest time to be looked at.
-	 * @return The iterable.
-	 */
-	public synchronized Queue<SuperStatus> getTweets(String subject, Date startDate, Date endDate)
+	
+	public synchronized Queue<Long> getTweets(String subject, Date startDate, Date endDate)
 	{
-		Queue<SuperStatus> q = new Queue<SuperStatus>();
+		Queue<Long> q = new Queue<Long>();
+		RBBST<Long, Long> tree = null;
 		if (subject == null || subject.equals("") || startDate == null || endDate == null)
 			return q;
-		RBBST<Date, SuperStatus> tree = tweetTable.get(subject);
-		try
+		if (tweetTable.contains(subject))
+			tree = tweetTable.get(subject);
+		for (Long l : tree.keys(startDate.getTime(), endDate.getTime()))
 		{
-			for (Date d : tree.keys(startDate, endDate))
-			{
-				q.enqueue(tree.get(d));
-			}
-			return q;
+			q.enqueue(tree.get(l));
 		}
-		catch(NullPointerException e)
-		{
-			return q;
-		}
+		return q;
 	}
-	public synchronized Queue<SuperStatus> getTweets(String[] subjects, Date startDate, Date endDate)
+	
+	public synchronized Queue<Long> getTweets(String[] subjects, Date startDate, Date endDate)
 	{
-		Queue<SuperStatus> currentTweets, targetTweets = new Queue<SuperStatus>();
-		String[] currentTags, editedSubjects;
-		SuperStatus currentTweet;
-		int foundIndex, size = 0;
-		boolean found;
+		Queue<Long> currentTweets, targetTweets = new Queue<Long>();
+		ArrayList<Long> IDs1 = new ArrayList<Long>();
+		ArrayList<Long> IDs2 = new ArrayList<Long>();
+		boolean using1 = true;
+		String[] editedSubjects;
+		int index, num = 0;
 		if (subjects.length == 0 || startDate == null || endDate == null)
 			return targetTweets;
 		
 		for (int i = 0; i < subjects.length; i++)
 			if (subjects[i] != null && !subjects[i].equals(""))
-				size++;
-		editedSubjects = new String[size];
+				num++;
+		editedSubjects = new String[num];
 		size = 0;
 		for (int i = 0; i < subjects.length; i++)
 		{
 			if (subjects[i] != null && !subjects[i].equals(""))
 			{
-				editedSubjects[size] = subjects[i];
-				size++;
+				editedSubjects[num] = subjects[i];
+				num++;
 			}
 		}
 		if (editedSubjects.length == 0)
 			return targetTweets;
 		
-		Arrays.sort(editedSubjects);
 		currentTweets = getTweets(editedSubjects[0], startDate, endDate);
-		size = currentTweets.size();
-		for (int i = 0; i < size; i++)
+		for (Long l : currentTweets)
 		{
-			foundIndex = 0;
-			found = true;
-			currentTweet = currentTweets.dequeue();
-			currentTags = currentTweet.getTags();
-			Arrays.sort(currentTags);
-			for (int k = 1; k < editedSubjects.length; k++)
+			IDs1.add(l);
+		}
+		Collections.sort(IDs1);
+		
+		for (int i = 1; i < editedSubjects.length; i++)
+		{
+			currentTweets = getTweets(editedSubjects[i], startDate, endDate);
+			for (Long l : currentTweets)
 			{
-				foundIndex = Arrays.binarySearch(currentTags, foundIndex, editedSubjects.length - 1, editedSubjects[k]);
-				if (foundIndex < 0)
+				if (using1)
 				{
-					found = false;
-					break;
+					index = Collections.binarySearch(IDs1, l);
+					if (index >= 0)
+						IDs2.add(l);
+				}
+				else
+				{
+					index = Collections.binarySearch(IDs2, l);
+					if (index >= 0)
+						IDs1.add(l);
 				}
 			}
-			if (found)
-				targetTweets.enqueue(currentTweet);
+			if (using1)
+			{
+				using1 = false;
+				IDs1 = new ArrayList<Long>();
+			}
+			else
+			{
+				using1 = true;
+				IDs2 = new ArrayList<Long>();
+			}
 		}
+		
+		if (using1)
+			for (Long l : IDs1)
+				targetTweets.enqueue(l);
+		else
+			for (Long l : IDs2)
+				targetTweets.enqueue(l);
 		return targetTweets;
 	}
-	public synchronized Queue<SuperStatus> getTweets(String subject)
+	
+	public synchronized Queue<Long> getTweets(String subject)
 	{
-		Queue<SuperStatus> q = new Queue<SuperStatus>();
-		if (subject == null || subject.equals(""))
+		Queue<Long> q = new Queue<Long>();
+		if (subject == null || subject.equals("") || !tweetTable.contains(subject))
 			return q;
-		RBBST<Date, SuperStatus> tree = tweetTable.get(subject);
-		try
+		RBBST<Long, Long> tree = tweetTable.get(subject);
+		for (Long l : tree.keys())
 		{
-			for (Date d : tree.keys())
-			{
-				q.enqueue(tree.get(d));
-			}
-			return q;
+			q.enqueue(tree.get(l));
 		}
-		catch(NullPointerException e)
-		{
-			return q;
-		}
+		return q;
 	}
-	public synchronized Queue<SuperStatus> getTweets(String[] subjects)
+	
+	public synchronized Queue<Long> getTweets(String[] subjects)
 	{
-		Queue<SuperStatus> currentTweets, targetTweets = new Queue<SuperStatus>();
-		String[] currentTags, editedSubjects;
-		SuperStatus currentTweet;
-		int foundIndex, size = 0;
-		boolean found;
-		if (subjects.length == 0)
-			return targetTweets;
-		for (int i = 0; i < subjects.length; i++)
-			if (subjects[i] != null && !subjects[i].equals(""))
-				size++;
-		editedSubjects = new String[size];
-		size = 0;
-		for (int i = 0; i < subjects.length; i++)
-		{
-			if (subjects[i] != null && !subjects[i].equals(""))
-			{
-				editedSubjects[size] = subjects[i];
-				size++;
-			}
-		}
-		if (editedSubjects.length == 0)
-			return targetTweets;
-		Arrays.sort(editedSubjects);
-		currentTweets = getTweets(editedSubjects[0]);
-		size = currentTweets.size();
-		for (int i = 0; i < size; i++)
-		{
-			foundIndex = 0;
-			found = true;
-			currentTweet = currentTweets.dequeue();
-			currentTags = currentTweet.getTags();
-			Arrays.sort(currentTags);
-			for (int k = 1; k < editedSubjects.length; k++)
-			{
-				foundIndex = Arrays.binarySearch(currentTags, foundIndex, editedSubjects.length - 1, editedSubjects[k]);
-				if (foundIndex < 0)
-				{
-					found = false;
-					break;
-				}
-			}
-			if (found)
-				targetTweets.enqueue(currentTweet);
-		}
-		return targetTweets;
+		return getTweets(subjects, new Date(0L), new Date());
 	}
-	/**
-	 * Returns All Tweets in TweetTable. Potentially very long (N lg N) runtime, and large memory usage.
-	 * @return All Tweets
-	 */
-	public synchronized Queue<SuperStatus> getAllTweets()
+	
+	public synchronized Queue<Long> getAllTweets()
 	{
-		Queue<SuperStatus> allTweets = new Queue<SuperStatus>();
+		Queue<Long> allTweets = new Queue<Long>();
 		for (String s : tweetTable.keys())
 		{
-			for (SuperStatus t : getTweets(s))
+			for (Long l : getTweets(s))
 			{
-				allTweets.enqueue(t);
+				allTweets.enqueue(l);
 			}
 		}
 		return allTweets;
 	}
-	/**
-	 * Returns All Tweets in TweetTable. Potentially very long (S * lg N * lg M) runtime.
-	 * @return All Tweets
-	 */
-	public synchronized Queue<SuperStatus> getAllTweets(Date startDate, Date endDate)
+	
+	public synchronized Queue<Long> getAllTweets(Date startDate, Date endDate)
 	{
-		Queue<SuperStatus> allTweets = new Queue<SuperStatus>();
+		Queue<Long> allTweets = new Queue<Long>();
 		for (String s : tweetTable.keys())
 		{
-			for (SuperStatus t : getTweets(s, startDate, endDate))
+			for (Long l : getTweets(s, startDate, endDate))
 			{
-				allTweets.enqueue(t);
+				allTweets.enqueue(l);
 			}
 		}
 		return allTweets;
