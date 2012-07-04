@@ -26,7 +26,7 @@ public class Controller
 	static ArrayList<String> track = new ArrayList<String>();
 	static ArrayList<Thread> streamThreads = new ArrayList<Thread>();
 	static TwitterStream twitterStream;
-	static Connection con;
+	static Connection con, subjectsConnection;
 	static StatusListener listener = new StatusListener(){
 	    public void onStatus(Status status)
 	    {
@@ -56,6 +56,7 @@ public class Controller
 		System.out.print("Loading... ");
 		try {
 			con = getConnection("/Users/Antonio/My Documents/Startup/Database/");
+			subjectsConnection = getConnection("/Users/Antonio/My Documents/Startup/SubjectsDatabase/");
 			//createTweetTable();
 		} catch (SQLException e1) {
 			System.out.println(e1);
@@ -130,17 +131,13 @@ public class Controller
 	        if (stmt != null) { stmt.close(); }
 	    }
 	}
-/*
-	public static void createUserTable() throws SQLException
+
+	public static void createSubjectTable() throws SQLException
 	{
 	    String createString =
-		        "CREATE CACHED TABLE " + "accelerandoDB" + ".USERS " +
-		        "(ID bigint NOT NULL, " +
+		        "CREATE CACHED TABLE SUBJECTS" +
+		        "(SUBJECT bigint NOT NULL, " +
 		        "FOLLOWERS integer NOT NULL, " +
-		        "FRIENDS integer NOT NULL, " +
-		        "LISTED_COUNT integer NOT NULL, " +
-		        "NAME varchar(40), " +
-		        "SCREEN_NAME varchar(30) NOT NULL, " +
 		        "PRIMARY KEY (ID))";
 
 		    Statement stmt = null;
@@ -153,13 +150,13 @@ public class Controller
 		    }
 	}
 	
-*/	public static Connection getConnection(String location) throws SQLException {
+	public static Connection getConnection(String location) throws SQLException {
 
 	    Connection conn = null;
 	    Properties connectionProps = new Properties();
 	    connectionProps.put("user", "ajuliano");
 	    connectionProps.put("password", "accelerando");
-	    conn = DriverManager.getConnection("jdbc:hsqldb:file:" + location + "accelerandoDB;shutdown=true", connectionProps);
+	    conn = DriverManager.getConnection("jdbc:hsqldb:file:" + location + "accelerandoDB", connectionProps);
 	    System.out.println("Connected to database");
 	    return conn;
 	}

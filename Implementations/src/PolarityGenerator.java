@@ -5,19 +5,54 @@ import java.util.Scanner;
 import java.util.InputMismatchException;
 import java.io.PrintStream;
 import java.io.FileWriter;
+
+import com.cybozu.labs.langdetect.*;
+
+import twitter4j.FilterQuery;
+import twitter4j.Status;
+import twitter4j.StatusDeletionNotice;
+import twitter4j.StatusListener;
+import twitter4j.TwitterStream;
 public class PolarityGenerator
 {
 	static File statisticsFile;
 	static final int NUM_STATS = 5;
 	@SuppressWarnings("unchecked")
-	public static void main(String[] args) throws IOException, ClassNotFoundException
+	public static void main(String[] args) throws IOException, ClassNotFoundException, LangDetectException
 	{
+		final Queue<Status> toBeAdded = new Queue<Status>();
+		StatusListener listener = new StatusListener(){
+		    public void onStatus(Status status)
+		    {
+		    	if (toBeAdded.size() < 1000)
+		            toBeAdded.enqueue(status);
+		    }
+		    public void onDeletionNotice(StatusDeletionNotice statusDeletionNotice) 
+		    {
+		    	//System.err.println("Deletion Notice");
+		    }
+		    public void onTrackLimitationNotice(int numberOfLimitedStatuses) 
+		    {
+		    	System.err.println("Limitation Notice: " + numberOfLimitedStatuses);
+		    }
+		    public void onException(Exception ex) {
+		    	System.err.println("Exception");
+		    }
+		    public void onScrubGeo(long arg0, long arg1) {
+				System.err.println("ScrubGeo");
+		    }
+		};
+		TwitterStream twitterStream = CollectionMethods.authenticateStream();
+		twitterStream.addListener(listener);
+	    twitterStream.sample();
+	    FilterQuery query = new FilterQuery();
+	    //query.locations({{}, {}});
 		final String wordsFilename = "words.tst";
 		String[] tokens;
 		String[] tweets;
-		String[] subjects;
+		//String[] subjects;
 		String tweetData = "";
-		String[] allTweets;
+		//String[] allTweets;
 		double vote = 0;
 		String current;
 		PolarityValue v;
@@ -28,7 +63,21 @@ public class PolarityGenerator
 		FileWriter voteWriter = null;
 		TST<PolarityValue> words = null;
 		Object obj = null;
-		
+		Detector langDetector = null;
+		//Lang Detection
+		try {
+			DetectorFactory.loadProfile("lib/profiles");
+		} catch (LangDetectException e2) {
+			System.err.println("Failed to load language profile");
+			System.exit(0);
+		}
+		try {
+			langDetector = DetectorFactory.create();
+		} catch (LangDetectException e2) {
+			System.err.println("Failed to Create Language Detector");
+			System.exit(0);
+		}
+		langDetector.setMaxTextLength(200);
 		//Create files if do not exist
 		statisticsFile = new File("statistics.txt");
 		try {
@@ -74,7 +123,7 @@ public class PolarityGenerator
 			System.exit(0);
 		}
 		
-		
+		/*
 		// Load Tweets
 		try {
 			in = new Scanner(new File("tweets.txt"));
@@ -105,7 +154,7 @@ public class PolarityGenerator
 				j++;
 			}
 		}
-		
+		*/
 		
 		// Print Initial Message and Logon
 		System.out.print("Welcome to the Tweet rating system! Please use the following voting protocol:\n1 - Very Negative" +
@@ -132,10 +181,22 @@ public class PolarityGenerator
 		
 		
 		// Vote on Tweets
-		for (int k = 0; k < tweets.length; k++)
+		for (;;)
 		{
-			System.out.println("SUBJECT: " + subjects[k]);
-			current = tweets[k];
+			//System.out.println("SUBJECT: " + subjects[k]);
+			current = toBeAdded.dequeue().getText();
+			langDetector = DetectorFactory.create();
+			langDetector.append(current);
+			try {
+				if (!langDetector.detect().equals("en"))
+				{
+					System.out.println("NOT ENGLISH: " + current + "\nLANGUAGE: " + langDetector.detect());
+					continue;
+				}
+			} catch (LangDetectException e1) {
+				System.err.println(e1);
+				continue;
+			}
 			current = current.replaceAll("http:\\/\\/t.co\\/........", " ");
 			current = current.toLowerCase();
 			System.out.println("TWEET: " + current);
@@ -158,19 +219,22 @@ public class PolarityGenerator
 				}
 				if (vote == 0)
 				{
+					/*
 					PrintStream writer = null;
 					try {
 						writer = new PrintStream(new File("tweets.txt"));
 					} catch (FileNotFoundException e) {
 						System.out.println("Failed to write remaining tweets");
 					}
+					
 					for (;k < tweets.length; k++)
 					{
 						writer.print(subjects[k] + "\n");
 						writer.print(tweets[k] + "\n");
 					}
-					writer.flush();
-					writer.close();
+					*/
+					//writer.flush();
+					//writer.close();
 					ObjectLoader.save(words, wordsFilename);
 					writeStats(userScores);
 					System.exit(0);
@@ -205,7 +269,7 @@ public class PolarityGenerator
 			vote -= 3;
 			vote *= 2.5;
 			try {
-				voteWriter.write(tweets[k] + "\n" + vote + "\n");
+				voteWriter.write(current + "\n" + vote + "\n");
 				voteWriter.flush();
 			} catch (IOException e) {
 				System.out.println("Unable to write vote");
@@ -224,10 +288,10 @@ public class PolarityGenerator
 				v.setScore((v.getScore() * v.getOccurrences() + vote) / (v.getOccurrences() + 1));
 				v.incrementOccurrences();
 			}
-		}
+		}/*
 		ObjectLoader.save(words, wordsFilename);
 		writeStats(userScores);
-		System.exit(0);
+		System.exit(0);*/
 	}
 	
 	// Save User Voting Statistics

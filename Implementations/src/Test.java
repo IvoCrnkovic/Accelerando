@@ -13,7 +13,37 @@ public class Test {
 	static Connection con;
 	public static void main(String[] args) throws FileNotFoundException, IOException, ClassNotFoundException, SQLException
 	{
-		CollectionMethods.save(new StatusTable(), "statusTable.stb");
+		//CollectionMethods.save(new StatusTable(), "statusTable.stb");
+		TST<PolarityValue> words = CollectionMethods.<TST<PolarityValue>>load("words.tst");
+		ArrayList<Holder> polarities = new ArrayList<Holder>();
+		PrintStream stream = new PrintStream("results.txt");
+		for (String s : words.keys())
+		{
+			polarities.add(new Holder(words.get(s), s));
+		}
+		Collections.sort(polarities);
+		for (Holder h : polarities)
+		{
+			stream.println(h.s + "\t\t\tSCORE: " + h.v.getScore() + "\t\tOCCURRENCES: " + h.v.getOccurrences());
+		}
+	}
+	private static class Holder implements Comparable
+	{
+		PolarityValue v;
+		String s;
+		public Holder(PolarityValue val, String st)
+		{
+			v = val;
+			s = st;
+		}
+		@Override
+		public int compareTo(Object arg0) {
+			if (this.v.getScore() > ((Holder) arg0).v.getScore())
+				return 1;
+			if (this.v.getScore() < ((Holder) arg0).v.getScore())
+				return -1;
+			return 0;
+		}
 	}
 	public static void createTweetTable() throws SQLException {
 	    String createString =

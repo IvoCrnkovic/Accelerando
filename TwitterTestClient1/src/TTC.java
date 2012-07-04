@@ -77,7 +77,7 @@ public class TTC {
 	private static void writeHotTopics()
 	{
 		//number of tweets per topic
-		int numTweets = 20;
+		int numTweets = 25;
 		String[] topic = {"Justin Bieber",
 				"Miley Cyrus",
 				"Bob Welch",
