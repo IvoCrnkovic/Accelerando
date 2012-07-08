@@ -2,19 +2,76 @@
  * Test Client: For Testing Purposes Only
  */
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 import java.io.*;
+
 import twitter4j.*;
 public class Test {
 	static Connection con;
 	public static void main(String[] args) throws FileNotFoundException, IOException, ClassNotFoundException, SQLException
 	{
 		//CollectionMethods.save(new StatusTable(), "statusTable.stb");
-		TST<PolarityValue> words = CollectionMethods.<TST<PolarityValue>>load("words.tst");
+		con = getConnection("/Users/Antonio/My Documents/Startup/AccelerandoDB/");
+		Statement s = con.createStatement();
+		PreparedStatement p = con.prepareStatement("SHUTDOWN");
+		//s.execute("SHUTDOWN SCRIPT");
+		//createTweetTable();
+		//createSubjectTable();
+		//createUserTable();
+		s.execute("SHUTDOWN");
+	}
+	private static void addIgnoredWords() throws FileNotFoundException
+	{
+		TST<PolarityValue> newTST = CollectionMethods.<TST<PolarityValue>>load("polarities.tst");
+		Scanner in = new Scanner(new File("ignore.txt"));
+		String s;
+		while (in.hasNext())
+		{
+			s = in.next();
+			in.nextLine();
+			if (newTST.contains(s))
+			{
+				System.out.println("Deleting: " + s);
+				newTST.put(s, null);
+				if (!newTST.contains(s))
+					System.out.println("SUCCESSFUL");
+			}
+		}
+		CollectionMethods.save(newTST, "polarities.tst");
+	}
+	private static void addExistingToDictionary()
+	{
+		TST<PolarityValue> origin = CollectionMethods.<TST<PolarityValue>>load("words.tst");
+		TST<PolarityValue> newTST = CollectionMethods.<TST<PolarityValue>>load("polarities.tst");
+		for (String s : origin.keys())
+			if (newTST.contains(s))
+				newTST.put(s, origin.get(s));
+		CollectionMethods.save(newTST, "polarities.tst");
+	}
+	private static void createDictionary() throws FileNotFoundException
+	{
+		Scanner slang = new Scanner(new File("SlangDict.txt"));
+		Scanner dict = new Scanner(new File("Dictionary.txt"));
+		ArrayList<String> words = new ArrayList<String>();
+		while (slang.hasNext())
+		{
+			words.add(slang.next());
+			slang.nextLine();
+		}
+		while (dict.hasNext())
+		{
+			words.add(dict.next("\\w+"));
+		}
+		Collections.shuffle(words);
+		TST<PolarityValue> newTST = new TST<PolarityValue>();
+		for (String s : words)
+			newTST.put(s, new PolarityValue(0., 0));
+		CollectionMethods.save(newTST, "polarities.tst");
+	}
+	private static void showScores() throws FileNotFoundException
+	{
+		TST<PolarityValue> words = CollectionMethods.<TST<PolarityValue>>load("polarities.tst");
 		ArrayList<Holder> polarities = new ArrayList<Holder>();
 		PrintStream stream = new PrintStream("results.txt");
 		for (String s : words.keys())
@@ -24,7 +81,10 @@ public class Test {
 		Collections.sort(polarities);
 		for (Holder h : polarities)
 		{
-			stream.println(h.s + "\t\t\tSCORE: " + h.v.getScore() + "\t\tOCCURRENCES: " + h.v.getOccurrences());
+			if (h.v.getOccurrences() == 0)
+				stream.println(h.s + "\t\t\tSCORE: " + h.v.getScore() + "\t\tOCCURRENCES: " + h.v.getOccurrences());
+			else
+				stream.println(h.s + "\t\t\tSCORE: " + h.v.getScore() + "\t\tOCCURRENCES: " + (h.v.getOccurrences() - 5));
 		}
 	}
 	private static class Holder implements Comparable
@@ -47,50 +107,69 @@ public class Test {
 	}
 	public static void createTweetTable() throws SQLException {
 	    String createString =
-	        "CREATE CACHED TABLE " + "accelerandoDB" + ".TWEETS " +
+	        "CREATE CACHED TABLE TWEET_TABLE " +
 	        "(ID bigint NOT NULL, " +
 	        "TEXT varchar(200) NOT NULL, " +
-	        "RETWEET_COUNT smallint NOT NULL, " +
+	        "DATE bigint, " +
+	        "RETWEET_COUNT int NOT NULL, " +
 	        "IS_RETWEET boolean NOT NULL, " +
 	        "IS_FAVORITED boolean NOT NULL, " +
 	        "USER_ID bigint NOT NULL, " +
 	        "COUNTRY_CODE varchar(10), " +
 	        "LATTITUDE float, " +
 	        "LONGITUDE float, " +
-	        "PRIMARY KEY (ID), " + 
-	        "FOREIGN KEY (USER_ID) REFERENCES accelerandoDatabase.USERS (ID))";
+	        "POLARIZATION float NOT NULL, " +
+	        "WEIGHT float NOT NULL, " +
+	        "PRIMARY KEY (ID))";
 
 	    Statement stmt = null;
 	    try {
 	        stmt = con.createStatement();
 	        stmt.executeUpdate(createString);
-	        stmt.executeUpdate("SHUTDOWN");
-	    } catch (SQLException e) {
-	        System.err.println(e);
-	    } finally {
+	    } 
+	    finally {
 	        if (stmt != null) { stmt.close(); }
 	    }
 	}
-	public static void createUserTable() throws SQLException
+
+	public static void createSubjectTable() throws SQLException
 	{
 	    String createString =
-		        "CREATE CACHED TABLE " + "accelerandoDB" + ".USERS " +
-		        "(ID bigint NOT NULL, " +
-		        "FOLLOWERS integer NOT NULL, " +
-		        "FRIENDS integer NOT NULL, " +
-		        "LISTED_COUNT integer NOT NULL, " +
-		        "NAME varchar(40), " +
-		        "SCREEN_NAME varchar(30) NOT NULL, " +
-		        "PRIMARY KEY (ID))";
+		        "CREATE CACHED TABLE SUBJECTS" +
+		        "(SUBJECT varchar(20) NOT NULL, " +
+		        "RBBST BLOB, " +
+		        "PRIMARY KEY (SUBJECT))";
 
 		    Statement stmt = null;
 		    try {
 		        stmt = con.createStatement();
 		        stmt.executeUpdate(createString);
-		        stmt.executeUpdate("SHUTDOWN");
-		    } catch (SQLException e) {
-		        System.err.println(e);
-		    } finally {
+		    }
+		    finally {
+		        if (stmt != null) { stmt.close(); }
+		    }
+	}
+	
+	public static void createUserTable() throws SQLException
+	{
+		 String createString =
+			        "CREATE CACHED TABLE USERS " +
+			        "(ID bigint NOT NULL, " +
+			        "FOLLOWERS integer NOT NULL, " +
+			        "FRIENDS integer NOT NULL, " +
+			        "LISTED_COUNT integer NOT NULL, " +
+			        "NAME varchar(40), " +
+			        "SCREEN_NAME varchar(30) NOT NULL, " +
+			        "NUM_TWEETS integer NOT NULL, " + 
+			        "AVERAGE_POLARIZATION float NOT NULL, " +
+			        "PRIMARY KEY (ID))";
+
+		    Statement stmt = null;
+		    try {
+		        stmt = con.createStatement();
+		        stmt.executeUpdate(createString);
+		    }
+		    finally {
 		        if (stmt != null) { stmt.close(); }
 		    }
 	}
@@ -100,8 +179,9 @@ public class Test {
 	    Properties connectionProps = new Properties();
 	    connectionProps.put("user", "ajuliano");
 	    connectionProps.put("password", "accelerando");
-	    conn = DriverManager.getConnection("jdbc:hsqldb:file:" + location + "accelerandoDB;shutdown=true", connectionProps);
+	    conn = DriverManager.getConnection("jdbc:hsqldb:file:" + location + "accelerandoDB", connectionProps);
 	    System.out.println("Connected to database");
 	    return conn;
 	}
+	
 }

@@ -1,12 +1,18 @@
 import java.io.IOException;
+import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.Scanner;
+
+import org.hsqldb.jdbc.JDBCConnection;
+import org.hsqldb.jdbc.JDBCPreparedStatement;
+
 import twitter4j.FilterQuery;
 import twitter4j.StatusStream;
 import twitter4j.Status;
@@ -14,6 +20,7 @@ import twitter4j.StatusDeletionNotice;
 import twitter4j.StatusListener;
 import twitter4j.TwitterException;
 import twitter4j.TwitterStream;
+import twitter4j.User;
 
 public class Controller
 {
@@ -21,12 +28,12 @@ public class Controller
 					 statusTableBackup	= "StatusTableBackup.stb",
 					 wordPolaritiesFile = "words.tst";
 	final static Queue<Status> toBeAdded = new Queue<Status>();
-	static StatusTable statusTable;
 	static TweetEvaluator tweetEvaluator;
 	static ArrayList<String> track = new ArrayList<String>();
 	static ArrayList<Thread> streamThreads = new ArrayList<Thread>();
 	static TwitterStream twitterStream;
-	static Connection con, subjectsConnection;
+	static Connection con;
+	
 	static StatusListener listener = new StatusListener(){
 	    public void onStatus(Status status)
 	    {
@@ -48,21 +55,30 @@ public class Controller
 	    }
 	};
 	
-	public static void main(String[] args) throws SQLException 
+	public static void main(String[] args) throws SQLException
 	{
+		PreparedStatement commitStatement = null;
 		TST<PolarityValue> wordPolarities;
 		
 		// Load
 		System.out.print("Loading... ");
 		try {
-			con = getConnection("/Users/Antonio/My Documents/Startup/Database/");
-			subjectsConnection = getConnection("/Users/Antonio/My Documents/Startup/SubjectsDatabase/");
+			con = getConnection("/Users/Antonio/My Documents/Startup/AccelerandoDB/");System.out.println("1");
+			//con.prepareStatement("DROP TABLE TWEETS").execute();
 			//createTweetTable();
+			//createSubjectTable();
+			//createUserTable();System.out.println("4");
+			//subjectConnection = getConnection("/Users/Antonio/My Documents/Startup/SubjectsDatabase/");
+			//userConnection = getConnection("/Users/Antonio/My Documents/Startup/SubjectsDatabase/");
+			//createTweetTable();
+			
 		} catch (SQLException e1) {
 			System.out.println(e1);
 			System.exit(0);
 		}
-		statusTable = CollectionMethods.<StatusTable>load(statusTableFile);
+		commitStatement = con.prepareStatement("COMMIT");
+		//userCommitStatement = userConnection.prepareStatement("COMMIT");
+		//subjectCommitStatement = subjectConnection.prepareStatement("COMMIT");
 		wordPolarities = CollectionMethods.<TST<PolarityValue>>load(wordPolaritiesFile);
 		tweetEvaluator = new TweetEvaluator(wordPolarities);
 		System.out.println("Done");
@@ -91,8 +107,11 @@ public class Controller
 			if (System.currentTimeMillis() > nextSave)
 			{
 				nextSave = System.currentTimeMillis() + 600000;
-				CollectionMethods.backup(statusTableFile, statusTableBackup);
-				CollectionMethods.save(statusTable, statusTableFile);
+				try {
+					commitStatement.executeUpdate();
+				} catch (SQLException e) {
+					System.err.println("SQLException: Automatic Commit Failed");
+				}
 			}
 			else
 			{
@@ -108,9 +127,10 @@ public class Controller
 	
 	public static void createTweetTable() throws SQLException {
 	    String createString =
-	        "CREATE CACHED TABLE TWEETS " +
+	        "CREATE CACHED TABLE TWEET_TABLE " +
 	        "(ID bigint NOT NULL, " +
 	        "TEXT varchar(200) NOT NULL, " +
+	        "DATE bigint, " +
 	        "RETWEET_COUNT int NOT NULL, " +
 	        "IS_RETWEET boolean NOT NULL, " +
 	        "IS_FAVORITED boolean NOT NULL, " +
@@ -136,9 +156,9 @@ public class Controller
 	{
 	    String createString =
 		        "CREATE CACHED TABLE SUBJECTS" +
-		        "(SUBJECT bigint NOT NULL, " +
-		        "FOLLOWERS integer NOT NULL, " +
-		        "PRIMARY KEY (ID))";
+		        "(SUBJECT varchar(20) NOT NULL, " +
+		        "RBBST BLOB, " +
+		        "PRIMARY KEY (SUBJECT))";
 
 		    Statement stmt = null;
 		    try {
@@ -150,9 +170,32 @@ public class Controller
 		    }
 	}
 	
+	public static void createUserTable() throws SQLException
+	{
+		 String createString =
+			        "CREATE CACHED TABLE USERS " +
+			        "(ID bigint NOT NULL, " +
+			        "FOLLOWERS integer NOT NULL, " +
+			        "FRIENDS integer NOT NULL, " +
+			        "LISTED_COUNT integer NOT NULL, " +
+			        "NAME varchar(40), " +
+			        "SCREEN_NAME varchar(30) NOT NULL, " +
+			        "NUM_TWEETS integer NOT NULL, " + 
+			        "AVERAGE_POLARIZATION float NOT NULL, " +
+			        "PRIMARY KEY (ID))";
+
+		    Statement stmt = null;
+		    try {
+		        stmt = con.createStatement();
+		        stmt.executeUpdate(createString);
+		    }
+		    finally {
+		        if (stmt != null) { stmt.close(); }
+		    }
+	}
 	public static Connection getConnection(String location) throws SQLException {
 
-	    Connection conn = null;
+		Connection conn = null;
 	    Properties connectionProps = new Properties();
 	    connectionProps.put("user", "ajuliano");
 	    connectionProps.put("password", "accelerando");
@@ -165,24 +208,137 @@ public class Controller
 	{
 		public void run() 
 		{
-			PreparedStatement statusDBUpdate = null;
-			//PreparedStatement userDBUpdate = null;
+			PreparedStatement statusDBInsert = null, userDBInsert = null, subjectDBInsert = null,
+								subjectBDQuery = null, userDBQuery = null, userDBUpdate = null;
+			ResultSet subjectResults, userResults;
+			String text;
+			Blob blob;
+			BlobRBBST rbbst;
 			try {
-				statusDBUpdate = con.prepareStatement("insert into TWEETS " +
-				        "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-				/*userDBUpdate = con.prepareStatement("insert into accelerandoDB.USERS " + 
-				        "values(?, ?, ?, ?, ?, ?)");*/
+				statusDBInsert = con.prepareStatement("insert into TWEET_TABLE " +
+				        "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+				userDBInsert = con.prepareStatement("insert into USERS " + 
+				        "values(?, ?, ?, ?, ?, ?, ?, ?)");
+				subjectDBInsert = con.prepareStatement("insert into SUBJECTS " + 
+				        "values(?, EMPTY_BLOB())");
+				subjectBDQuery = con.prepareStatement("select * from SUBJECTS where SUBJECT = '?'");
+				userDBQuery = con.prepareStatement("select * from USERS where ID = ?");
+				userDBUpdate = con.prepareStatement("update USERS set FOLLOWERS = ?, FRIENDS = ?, " +
+						"LISTED_COUNT = ?, NUM_TWEETS = ?, AVERAGE_POLARIZATION = ? WHERE ID = ?");
 			} catch (SQLException e1) {
 				System.out.println(e1);
 				System.err.println("SQLException: Failed to Create Prepared Statement");
 			}
 			Status current;
+			User currentUser;
+			double polarization;
+			int userTweetCount;
 			for(;;)
 			{
 				if (!toBeAdded.isEmpty())
 				{
 					current = toBeAdded.dequeue();
-					statusTable.add(current, tweetEvaluator, statusDBUpdate);
+					currentUser = current.getUser();
+					polarization = tweetEvaluator.calculatePolarization(current);
+					//TODO add to Databases
+					try
+					{
+						// Add To Tweet Database
+						statusDBInsert.setLong(1, current.getId());
+						statusDBInsert.setString(2, current.getText());
+						statusDBInsert.setLong(3, current.getCreatedAt().getTime());
+						statusDBInsert.setInt(4, (int) current.getRetweetCount());
+						statusDBInsert.setBoolean(5, current.isRetweet());
+						statusDBInsert.setBoolean(6, current.isFavorited());
+						statusDBInsert.setLong(7, currentUser.getId());
+						if (current.getPlace() != null)
+							statusDBInsert.setString(8, current.getPlace().getCountryCode());
+						else
+							statusDBInsert.setString(8, null);
+						if (current.getGeoLocation() != null)
+						{
+							statusDBInsert.setDouble(9, current.getGeoLocation().getLatitude());	
+							statusDBInsert.setDouble(10, current.getGeoLocation().getLongitude());
+						}
+						else
+						{
+							statusDBInsert.setDouble(9, Double.NaN);
+							statusDBInsert.setDouble(10, Double.NaN);
+						}
+						statusDBInsert.setDouble(11, polarization);
+						statusDBInsert.setDouble(12, tweetEvaluator.calculateWeight(current));
+						statusDBInsert.executeUpdate();
+						
+						
+						
+						// Add To User Database
+						userDBQuery.setLong(1, currentUser.getId());
+						userResults = userDBQuery.executeQuery();
+						if (userResults.next())
+						{
+							userTweetCount = userResults.getInt(7);
+							userDBUpdate.setInt(1, currentUser.getFollowersCount());
+							userDBUpdate.setInt(2, currentUser.getFriendsCount());
+							userDBUpdate.setInt(3, currentUser.getListedCount());
+							userDBUpdate.setInt(4, userTweetCount + 1);
+							userDBUpdate.setDouble(5, (userResults.getDouble(8) * userTweetCount + polarization) /
+													(userTweetCount + 1));
+							userDBUpdate.setLong(6, currentUser.getId());
+							userDBUpdate.executeUpdate();
+						}
+						else
+						{
+							userDBInsert.setLong(1, currentUser.getId());
+							userDBInsert.setInt(2, currentUser.getFollowersCount());
+							userDBInsert.setInt(3, currentUser.getFriendsCount());
+							userDBInsert.setInt(4, currentUser.getListedCount());
+							userDBInsert.setString(5, currentUser.getName());
+							userDBInsert.setString(6, currentUser.getScreenName());
+							userDBInsert.setInt(7, 1);
+							userDBInsert.setDouble(8, polarization);
+							userDBInsert.executeUpdate();
+						}
+						
+						
+						
+						
+						// Add To Subject Database
+						text = current.getText();
+						text = text.replaceAll("http:\\/\\/t.co\\/........", " ");
+						text = text.toLowerCase();
+						String[] tags = text.split("(\\W)+");
+						for (int i = 0; i < tags.length; i++)
+						{
+							if (tags[i] == null || tags[i].length() == 0)
+							{
+								continue;
+							}
+							subjectBDQuery.setString(1, tags[i]);
+							subjectResults = subjectBDQuery.executeQuery();
+								
+							if(subjectResults.next())
+						    {
+						    	blob = subjectResults.getBlob(2);
+						    	rbbst = new BlobRBBST(blob);
+						    	rbbst.put(current.getCreatedAt().getTime(), current.getId());
+						    }
+						    else
+						    {
+						    	subjectDBInsert.setString(1, tags[i]);
+						    	subjectDBInsert.executeUpdate();
+						    	subjectResults = subjectBDQuery.executeQuery();
+						    	subjectResults.next();
+						    	blob = subjectResults.getBlob(2);
+						    	rbbst = new BlobRBBST(blob);
+						    	rbbst.put(current.getCreatedAt().getTime(), current.getId());
+						    }
+						}
+					}
+					catch (Exception e)
+					{
+						System.err.println("Exception: Failed to add status to Database");
+						System.err.println(e);
+					}
 				} 
 				
 				else
@@ -202,6 +358,12 @@ public class Controller
 	private static class Client implements Runnable
 	{
 		public void run() {
+			JDBCPreparedStatement commitStatement = null;
+			try {
+				commitStatement = (JDBCPreparedStatement) con.prepareStatement("COMMIT");
+			} catch (SQLException e1) {
+				System.err.println(e1);
+			}
 			String input = "";
 			FilterQuery query;
 			Thread thread;
@@ -214,10 +376,15 @@ public class Controller
 				if (input.equals("save"))
 				{
 					System.out.println("Saving...");
-					CollectionMethods.save(statusTable, statusTableFile);
+					try {
+						commitStatement.executeUpdate();
+					} catch (SQLException e) {
+						System.err.println("SQLException: Save Unsuccessful");
+					}
 					System.out.println("Done");
 					continue;
 				}
+				/*
 				if (input.equals("backup"))
 				{
 					System.out.println("Backing Up...");
@@ -225,15 +392,15 @@ public class Controller
 					System.out.println("Done");
 					continue;
 				}
+				*/
 				if (input.equals("show"))
 				{
-					for (String s : statusTable.getSubjects())
-						System.out.println(s + ": " + statusTable.subjectSize(s));
+					//TODO Write
 					continue;
 				}
 				if (input.equals("size"))
 				{
-					System.out.println("Size: " + statusTable.size());
+					//TODO Write
 					continue;
 				}
 				if (input.equals("memory"))
@@ -296,11 +463,14 @@ public class Controller
 				{
 					synchronized (this)
 					{
-						CollectionMethods.backup(statusTableFile, statusTableBackup);
-						CollectionMethods.save(statusTable, statusTableFile);
 						try {
+							commitStatement.executeUpdate();
 							Statement s = con.createStatement();
 							s.execute("SHUTDOWN");
+							//s = userConnection.createStatement();
+							//s.execute("SHUTDOWN");
+							//s = statusConnection.createStatement();
+							//s.execute("SHUTDOWN");
 						} catch (SQLException e) {
 							System.err.println("SQLException: Shutdown Failed");
 						}

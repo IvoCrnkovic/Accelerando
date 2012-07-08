@@ -12,12 +12,10 @@ public class StatusTable implements java.io.Serializable
 {
 	private static final long serialVersionUID = -4330239673197534165L;
 	
-	private final TST<RBBST<Long, Long>> tweetTable;
 	private long size;
 	
 	public StatusTable()
 	{
-		tweetTable = new TST<RBBST<Long, Long>>();
 		size = 0L;
 	}
 	
@@ -28,29 +26,25 @@ public class StatusTable implements java.io.Serializable
 	
 	public synchronized int subjectSize(String subject)
 	{
-		if (tweetTable.contains(subject))
-			return tweetTable.get(subject).size();
-		return 0;
+		// TODO: Write
 	}
 	
 	public synchronized int subjectSize(String subject, Date startDate, Date endDate)
 	{
-		if (tweetTable.contains(subject))
-			return tweetTable.get(subject).size(startDate.getTime(), endDate.getTime());
-		return 0;
+		// TODO: Write
 	}
 	
 	public synchronized int subjectSize(String[] subject, Date startDate, Date endDate)
 	{
-		return getTweets(subject, startDate, endDate).size();
+		// TODO: Write
 	}
 	
 	public synchronized int subjectSize(String[] subject)
 	{
-		return getTweets(subject).size();
+		// TODO: Write
 	}
 	
-	public synchronized void add(Status t, TweetEvaluator eval, PreparedStatement s)
+	public synchronized void add(Status t, TweetEvaluator eval, PreparedStatement s, PreparedStatement u, PreparedStatement sub)
 	{
 		if (t == null)
 			return;
@@ -78,26 +72,27 @@ public class StatusTable implements java.io.Serializable
 		{
 			s.setLong(1, t.getId());
 			s.setString(2, t.getText());
-			s.setInt(3, (int) t.getRetweetCount());
-			s.setBoolean(4, t.isRetweet());
-			s.setBoolean(5, t.isFavorited());
-			s.setLong(6, user.getId());
+			s.setLong(3, t.getCreatedAt().getTime());
+			s.setInt(4, (int) t.getRetweetCount());
+			s.setBoolean(5, t.isRetweet());
+			s.setBoolean(6, t.isFavorited());
+			s.setLong(7, user.getId());
 			if (t.getPlace() != null)
-				s.setString(7, t.getPlace().getCountryCode());
+				s.setString(8, t.getPlace().getCountryCode());
 			else
-				s.setString(7, null);
+				s.setString(8, null);
 			if (t.getGeoLocation() != null)
 			{
-				s.setDouble(8, t.getGeoLocation().getLatitude());	
-				s.setDouble(9, t.getGeoLocation().getLongitude());
+				s.setDouble(9, t.getGeoLocation().getLatitude());	
+				s.setDouble(10, t.getGeoLocation().getLongitude());
 			}
 			else
 			{
-				s.setDouble(8, Double.NaN);
 				s.setDouble(9, Double.NaN);
+				s.setDouble(10, Double.NaN);
 			}
-			s.setDouble(10, eval.calculatePolarization(t));
-			s.setDouble(11, eval.calculateWeight(t));
+			s.setDouble(11, eval.calculatePolarization(t));
+			s.setDouble(12, eval.calculateWeight(t));
 			s.executeUpdate();
 		}
 		catch (SQLException e1)

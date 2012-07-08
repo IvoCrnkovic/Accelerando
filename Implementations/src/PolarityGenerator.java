@@ -8,7 +8,6 @@ import java.io.FileWriter;
 
 import com.cybozu.labs.langdetect.*;
 
-import twitter4j.FilterQuery;
 import twitter4j.Status;
 import twitter4j.StatusDeletionNotice;
 import twitter4j.StatusListener;
@@ -45,18 +44,14 @@ public class PolarityGenerator
 		TwitterStream twitterStream = CollectionMethods.authenticateStream();
 		twitterStream.addListener(listener);
 	    twitterStream.sample();
-	    FilterQuery query = new FilterQuery();
 	    //query.locations({{}, {}});
-		final String wordsFilename = "words.tst";
+		final String wordsFilename = "polarities.tst";
 		String[] tokens;
-		String[] tweets;
 		//String[] subjects;
-		String tweetData = "";
 		//String[] allTweets;
 		double vote = 0;
 		String current;
 		PolarityValue v;
-		Scanner in = null;
 		Scanner stdIn = new Scanner(System.in);
 		scoreSheet userScores;
 		String user;
@@ -88,32 +83,7 @@ public class PolarityGenerator
 		}
 		
 		// Load TST from file
-		try
-		{
-			obj = ObjectLoader.load(wordsFilename);
-		}
-		catch (IOException e)
-		{
-			System.err.println("IOException: Failed to Load TST from + " + wordsFilename);
-			System.exit(0);
-		}
-		catch (ClassNotFoundException e)
-		{
-			System.err.println("ClassNotFoundException: Failed to Load TST from + " + wordsFilename);
-			System.exit(0);
-		}
-		if (obj instanceof TST<?>)
-			words = (TST<PolarityValue>)obj;
-		else
-		{
-			System.err.println("Class Mismatch: Could not load TST from " + wordsFilename);
-			System.exit(0);
-		}
-		if (words == null)
-		{
-			System.out.println("Failed to load words.tst");
-			System.exit(0);
-		}
+		words = CollectionMethods.<TST<PolarityValue>>load(wordsFilename);
 		
 		File voteFile = new File("votes.txt");
 		try {
@@ -281,12 +251,15 @@ public class PolarityGenerator
 			{
 				if (tokens[i].length() == 0 || tokens[i] == null)
 					continue;
-				if (!words.contains(tokens[i]))
-					words.put(tokens[i], new PolarityValue(0., 5));
-				v = words.get(tokens[i]);
-				// Change Value Accordingly
-				v.setScore((v.getScore() * v.getOccurrences() + vote) / (v.getOccurrences() + 1));
-				v.incrementOccurrences();
+				if (words.contains(tokens[i]))
+				{
+					v = words.get(tokens[i]);
+					if (v.getOccurrences() == 0)
+						words.put(tokens[i], new PolarityValue(0., 5));
+					// Change Value Accordingly
+					v.setScore((v.getScore() * v.getOccurrences() + vote) / (v.getOccurrences() + 1));
+					v.incrementOccurrences();
+				}
 			}
 		}/*
 		ObjectLoader.save(words, wordsFilename);
