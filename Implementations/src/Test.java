@@ -14,12 +14,12 @@ public class Test {
 		//CollectionMethods.save(new StatusTable(), "statusTable.stb");
 		con = getConnection("/Users/Antonio/My Documents/Startup/AccelerandoDB/");
 		Statement s = con.createStatement();
-		PreparedStatement p = con.prepareStatement("SHUTDOWN");
+		PreparedStatement p = con.prepareStatement("COMMIT");
 		//s.execute("SHUTDOWN SCRIPT");
 		//createTweetTable();
 		//createSubjectTable();
 		//createUserTable();
-		s.execute("SHUTDOWN");
+		p.execute();
 	}
 	private static void addIgnoredWords() throws FileNotFoundException
 	{

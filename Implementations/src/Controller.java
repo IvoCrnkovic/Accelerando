@@ -4,7 +4,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Properties;
@@ -37,6 +39,8 @@ public class Controller
 	static StatusListener listener = new StatusListener(){
 	    public void onStatus(Status status)
 	    {
+	    	//TODO CHANGE THIS
+	    	if (toBeAdded.size() < 1000)
 	            toBeAdded.enqueue(status);
 	    }
 	    public void onDeletionNotice(StatusDeletionNotice statusDeletionNotice) 
@@ -55,28 +59,31 @@ public class Controller
 	    }
 	};
 	
-	public static void main(String[] args) throws SQLException
+	public static void main(String[] args)
 	{
-		PreparedStatement commitStatement = null;
 		TST<PolarityValue> wordPolarities;
-		
 		// Load
+		PreparedStatement setFilesLogFalse = null, setFilesLogTrue = null, checkpoint = null,
+							checkpointDefrag = null;
 		System.out.print("Loading... ");
 		try {
-			con = getConnection("/Users/Antonio/My Documents/Startup/AccelerandoDB/");System.out.println("1");
-			//con.prepareStatement("DROP TABLE TWEETS").execute();
-			//createTweetTable();
-			//createSubjectTable();
-			//createUserTable();System.out.println("4");
-			//subjectConnection = getConnection("/Users/Antonio/My Documents/Startup/SubjectsDatabase/");
-			//userConnection = getConnection("/Users/Antonio/My Documents/Startup/SubjectsDatabase/");
-			//createTweetTable();
-			
-		} catch (SQLException e1) {
+			con = getConnection("/Users/Antonio/My Documents/Startup/AccelerandoDB/");
+			createTweetTable();
+			createSubjectTable();
+			createUserTable();
+			setFilesLogFalse = con.prepareStatement("SET FILES LOG FALSE");
+			setFilesLogTrue = con.prepareStatement("SET FILES LOG TRUE");
+			checkpoint = con.prepareStatement("CHECKPOINT");
+			checkpointDefrag = con.prepareStatement("CHECKPOINT DEFRAG");
+			setFilesLogFalse.execute();
+			checkpoint.execute();
+		} 
+		catch (SQLException e1) {
 			System.out.println(e1);
 			System.exit(0);
 		}
-		commitStatement = con.prepareStatement("COMMIT");
+			
+		
 		//userCommitStatement = userConnection.prepareStatement("COMMIT");
 		//subjectCommitStatement = subjectConnection.prepareStatement("COMMIT");
 		wordPolarities = CollectionMethods.<TST<PolarityValue>>load(wordPolaritiesFile);
@@ -102,13 +109,17 @@ public class Controller
 		tweetTableAdder.start();
 		
 		long nextSave = System.currentTimeMillis() + 600000;
+		
 		for(;;)
 		{
 			if (System.currentTimeMillis() > nextSave)
 			{
 				nextSave = System.currentTimeMillis() + 600000;
 				try {
-					commitStatement.executeUpdate();
+					setFilesLogTrue.execute();
+					checkpointDefrag.execute();
+					setFilesLogFalse.execute();
+					checkpoint.execute();
 				} catch (SQLException e) {
 					System.err.println("SQLException: Automatic Commit Failed");
 				}
@@ -157,7 +168,7 @@ public class Controller
 	    String createString =
 		        "CREATE CACHED TABLE SUBJECTS" +
 		        "(SUBJECT varchar(20) NOT NULL, " +
-		        "RBBST BLOB, " +
+		        "RBBST BLOB(4G), " +
 		        "PRIMARY KEY (SUBJECT))";
 
 		    Statement stmt = null;
@@ -209,7 +220,8 @@ public class Controller
 		public void run() 
 		{
 			PreparedStatement statusDBInsert = null, userDBInsert = null, subjectDBInsert = null,
-								subjectBDQuery = null, userDBQuery = null, userDBUpdate = null;
+								subjectBDQuery = null, userDBQuery = null, userDBUpdate = null,
+								subjectDBUpdate = null;
 			ResultSet subjectResults, userResults;
 			String text;
 			Blob blob;
@@ -220,19 +232,21 @@ public class Controller
 				userDBInsert = con.prepareStatement("insert into USERS " + 
 				        "values(?, ?, ?, ?, ?, ?, ?, ?)");
 				subjectDBInsert = con.prepareStatement("insert into SUBJECTS " + 
-				        "values(?, EMPTY_BLOB())");
-				subjectBDQuery = con.prepareStatement("select * from SUBJECTS where SUBJECT = '?'");
+				        "values(?, ?)");
+				subjectBDQuery = con.prepareStatement("select * from SUBJECTS where SUBJECT = ? for update");
+				subjectDBUpdate = con.prepareStatement("update SUBJECTS set RBBST = ? WHERE SUBJECT = ?");
 				userDBQuery = con.prepareStatement("select * from USERS where ID = ?");
 				userDBUpdate = con.prepareStatement("update USERS set FOLLOWERS = ?, FRIENDS = ?, " +
 						"LISTED_COUNT = ?, NUM_TWEETS = ?, AVERAGE_POLARIZATION = ? WHERE ID = ?");
 			} catch (SQLException e1) {
-				System.out.println(e1);
+				System.err.println(e1);
 				System.err.println("SQLException: Failed to Create Prepared Statement");
 			}
 			Status current;
 			User currentUser;
 			double polarization;
 			int userTweetCount;
+			int num = 1;
 			for(;;)
 			{
 				if (!toBeAdded.isEmpty())
@@ -314,30 +328,48 @@ public class Controller
 								continue;
 							}
 							subjectBDQuery.setString(1, tags[i]);
+							
 							subjectResults = subjectBDQuery.executeQuery();
-								
+							System.out.println(tags[i]);	
 							if(subjectResults.next())
-						    {
+						    {System.out.println("EXISTS");	
 						    	blob = subjectResults.getBlob(2);
 						    	rbbst = new BlobRBBST(blob);
 						    	rbbst.put(current.getCreatedAt().getTime(), current.getId());
+						    	subjectDBUpdate.setBlob(1, blob);
+						    	subjectDBUpdate.setString(2, tags[i]);
+						    	subjectDBUpdate.executeUpdate();
 						    }
 						    else
 						    {
 						    	subjectDBInsert.setString(1, tags[i]);
+						    	subjectDBInsert.setBlob(2, con.createBlob());
 						    	subjectDBInsert.executeUpdate();
 						    	subjectResults = subjectBDQuery.executeQuery();
 						    	subjectResults.next();
 						    	blob = subjectResults.getBlob(2);
 						    	rbbst = new BlobRBBST(blob);
 						    	rbbst.put(current.getCreatedAt().getTime(), current.getId());
+						    	subjectDBUpdate.setBlob(1, blob);
+						    	subjectDBUpdate.setString(2, tags[i]);
+						    	subjectDBUpdate.executeUpdate();
 						    }
 						}
+						System.out.println("" + (num++));
+					}
+					catch (SQLDataException e1)
+					{
+						System.err.println("SQLDataException: Failed to add status to database");
+					}
+					catch (SQLNonTransientConnectionException e2)
+					{
+						
 					}
 					catch (Exception e)
 					{
 						System.err.println("Exception: Failed to add status to Database");
 						System.err.println(e);
+						e.printStackTrace();
 					}
 				} 
 				
@@ -358,12 +390,6 @@ public class Controller
 	private static class Client implements Runnable
 	{
 		public void run() {
-			JDBCPreparedStatement commitStatement = null;
-			try {
-				commitStatement = (JDBCPreparedStatement) con.prepareStatement("COMMIT");
-			} catch (SQLException e1) {
-				System.err.println(e1);
-			}
 			String input = "";
 			FilterQuery query;
 			Thread thread;
@@ -376,10 +402,24 @@ public class Controller
 				if (input.equals("save"))
 				{
 					System.out.println("Saving...");
+					Statement s = null;
 					try {
-						commitStatement.executeUpdate();
+						s = con.createStatement();
+						s.execute("SET FILES LOG TRUE");
+						s.execute("CHECKPOINT DEFRAG");
+						s.execute("SET FILES LOG FALSE");
+						s.execute("CHECKPOINT");
 					} catch (SQLException e) {
 						System.err.println("SQLException: Save Unsuccessful");
+					}
+					finally
+					{
+						if (s != null)
+							try {
+								s.close();
+							} catch (SQLException e) {
+								e.printStackTrace();
+							}
 					}
 					System.out.println("Done");
 					continue;
@@ -464,8 +504,9 @@ public class Controller
 					synchronized (this)
 					{
 						try {
-							commitStatement.executeUpdate();
 							Statement s = con.createStatement();
+							s.execute("SET FILES LOG TRUE");
+							s.execute("CHECKPOINT DEFRAG");
 							s.execute("SHUTDOWN");
 							//s = userConnection.createStatement();
 							//s.execute("SHUTDOWN");

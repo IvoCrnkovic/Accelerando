@@ -169,7 +169,7 @@ public class BlobRBBST{
         }
         public Node(long key, long val, boolean color, int N) throws SQLException {
         	long blobLength = blob.length();
-        	this.ID = blobLength / NODE_SIZE;
+        	this.ID = blobLength / (long) NODE_SIZE;
             this.key = key;
             this.val = val;
             this.color = color;
@@ -190,8 +190,9 @@ public class BlobRBBST{
             else
             	bytes[COLOR_OFFSET] = 0;
             putInt(N, bytes, N_OFFSET);
+            System.out.println("LENGTH = " + (blobLength + 1L));
             
-            blob.setBytes(blobLength + 1, bytes);
+            blob.setBytes(blobLength + 1L, bytes);
         }
         
         
