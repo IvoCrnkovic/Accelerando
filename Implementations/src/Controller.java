@@ -1,4 +1,6 @@
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -40,6 +42,7 @@ public class Controller
 	    public void onStatus(Status status)
 	    {
 	    	//TODO CHANGE THIS
+	    	//TODO Implement Language Detection
 	    	if (toBeAdded.size() < 1000)
 	            toBeAdded.enqueue(status);
 	    }
@@ -68,6 +71,9 @@ public class Controller
 		System.out.print("Loading... ");
 		try {
 			con = getConnection("/Users/Antonio/My Documents/Startup/AccelerandoDB/");
+			Statement s = con.createStatement();
+			s.execute("SET FILES LOB SCALE 1");
+			s.close();
 			createTweetTable();
 			createSubjectTable();
 			createUserTable();
@@ -82,10 +88,6 @@ public class Controller
 			System.out.println(e1);
 			System.exit(0);
 		}
-			
-		
-		//userCommitStatement = userConnection.prepareStatement("COMMIT");
-		//subjectCommitStatement = subjectConnection.prepareStatement("COMMIT");
 		wordPolarities = CollectionMethods.<TST<PolarityValue>>load(wordPolaritiesFile);
 		tweetEvaluator = new TweetEvaluator(wordPolarities);
 		System.out.println("Done");
@@ -221,11 +223,11 @@ public class Controller
 		{
 			PreparedStatement statusDBInsert = null, userDBInsert = null, subjectDBInsert = null,
 								subjectBDQuery = null, userDBQuery = null, userDBUpdate = null,
-								subjectDBUpdate = null;
+								subjectDBUpdate = null, checkpoint = null;
 			ResultSet subjectResults, userResults;
 			String text;
 			Blob blob;
-			BlobRBBST rbbst;
+			SubjectBlobArray arr;
 			try {
 				statusDBInsert = con.prepareStatement("insert into TWEET_TABLE " +
 				        "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -238,6 +240,7 @@ public class Controller
 				userDBQuery = con.prepareStatement("select * from USERS where ID = ?");
 				userDBUpdate = con.prepareStatement("update USERS set FOLLOWERS = ?, FRIENDS = ?, " +
 						"LISTED_COUNT = ?, NUM_TWEETS = ?, AVERAGE_POLARIZATION = ? WHERE ID = ?");
+				checkpoint = con.prepareStatement("CHECKPOINT");
 			} catch (SQLException e1) {
 				System.err.println(e1);
 				System.err.println("SQLException: Failed to Create Prepared Statement");
@@ -254,7 +257,7 @@ public class Controller
 					current = toBeAdded.dequeue();
 					currentUser = current.getUser();
 					polarization = tweetEvaluator.calculatePolarization(current);
-					//TODO add to Databases
+					//System.out.println("TIME = " + current.getCreatedAt().getTime());
 					try
 					{
 						// Add To Tweet Database
@@ -314,15 +317,20 @@ public class Controller
 						}
 						
 						
-						
-						
+						//TODO Remove usernames after @
+						//TODO Adjust for duplacate times
 						// Add To Subject Database
 						text = current.getText();
 						text = text.replaceAll("http:\\/\\/t.co\\/........", " ");
 						text = text.toLowerCase();
 						String[] tags = text.split("(\\W)+");
-						for (int i = 0; i < tags.length; i++)
+						
+					            
+						outerloop: for (int i = 0; i < tags.length; i++)
 						{
+							for (int j = 0; j < i; j++)
+								if (tags[j].equals(tags[i]))
+									continue outerloop;
 							if (tags[i] == null || tags[i].length() == 0)
 							{
 								continue;
@@ -330,12 +338,14 @@ public class Controller
 							subjectBDQuery.setString(1, tags[i]);
 							
 							subjectResults = subjectBDQuery.executeQuery();
-							System.out.println(tags[i]);	
+							 
+							//System.out.println(tags[i]);	
+							//System.out.flush();
 							if(subjectResults.next())
-						    {System.out.println("EXISTS");	
+						    {//System.out.println("EXISTS");	
 						    	blob = subjectResults.getBlob(2);
-						    	rbbst = new BlobRBBST(blob);
-						    	rbbst.put(current.getCreatedAt().getTime(), current.getId());
+						    	arr = new SubjectBlobArray(blob);
+						    	arr.add(current.getCreatedAt().getTime(), current.getId());
 						    	subjectDBUpdate.setBlob(1, blob);
 						    	subjectDBUpdate.setString(2, tags[i]);
 						    	subjectDBUpdate.executeUpdate();
@@ -343,19 +353,20 @@ public class Controller
 						    else
 						    {
 						    	subjectDBInsert.setString(1, tags[i]);
-						    	subjectDBInsert.setBlob(2, con.createBlob());
+						    	subjectDBInsert.setBlob(2, SubjectBlobArray.createSubjectBlob());
 						    	subjectDBInsert.executeUpdate();
 						    	subjectResults = subjectBDQuery.executeQuery();
 						    	subjectResults.next();
 						    	blob = subjectResults.getBlob(2);
-						    	rbbst = new BlobRBBST(blob);
-						    	rbbst.put(current.getCreatedAt().getTime(), current.getId());
+						    	arr = new SubjectBlobArray(blob);
+						    	arr.add(current.getCreatedAt().getTime(), current.getId());
 						    	subjectDBUpdate.setBlob(1, blob);
 						    	subjectDBUpdate.setString(2, tags[i]);
 						    	subjectDBUpdate.executeUpdate();
 						    }
+							
 						}
-						System.out.println("" + (num++));
+						System.out.println("TWEET NO " + (num++));
 					}
 					catch (SQLDataException e1)
 					{
@@ -370,6 +381,7 @@ public class Controller
 						System.err.println("Exception: Failed to add status to Database");
 						System.err.println(e);
 						e.printStackTrace();
+						System.exit(0);
 					}
 				} 
 				

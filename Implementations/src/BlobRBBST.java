@@ -1,3 +1,6 @@
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.sql.Blob;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -31,9 +34,13 @@ public class BlobRBBST{
     private final int COLOR_OFFSET = 42;
     private final int N_OFFSET = 43;
     
-    public BlobRBBST(Blob blob)
+    public BlobRBBST(Blob blob) throws SQLException, Exception
     {
     	this.blob = blob;
+    	if (blob.length() == 0)
+	    	root = null;
+	    else
+	    	root = getNode(0);
     }
     
     private Node getNode(long nodeID) throws Exception
@@ -190,9 +197,24 @@ public class BlobRBBST{
             else
             	bytes[COLOR_OFFSET] = 0;
             putInt(N, bytes, N_OFFSET);
-            System.out.println("LENGTH = " + (blobLength + 1L));
+            
             
             blob.setBytes(blobLength + 1L, bytes);
+            
+            
+            System.out.println("LENGTH = " + (blobLength + 1L));
+            byte[] b = blob.getBytes(1, (int) blob.length());
+            System.out.println("---------------------------");
+            System.out.println(Arrays.toString(b));
+            for (int i = 0; i < b.length - 1; i += NODE_SIZE)
+            {
+            	System.out.println("---------------------------\nNumber: " + getLong(b, i + ID_OFFSET) +
+            			"\nLeft: " + getLong(b, i + LEFT_OFFSET) +
+            			"\nRight: " + getLong(b, i + RIGHT_OFFSET) +
+            			"\n---------------------------");
+            	
+            }
+            System.out.flush();
         }
         
         

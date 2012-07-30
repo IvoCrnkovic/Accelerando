@@ -11,15 +11,8 @@ public class Test {
 	static Connection con;
 	public static void main(String[] args) throws FileNotFoundException, IOException, ClassNotFoundException, SQLException
 	{
-		//CollectionMethods.save(new StatusTable(), "statusTable.stb");
-		con = getConnection("/Users/Antonio/My Documents/Startup/AccelerandoDB/");
-		Statement s = con.createStatement();
-		PreparedStatement p = con.prepareStatement("COMMIT");
-		//s.execute("SHUTDOWN SCRIPT");
-		//createTweetTable();
-		//createSubjectTable();
-		//createUserTable();
-		p.execute();
+		
+		
 	}
 	private static void addIgnoredWords() throws FileNotFoundException
 	{
