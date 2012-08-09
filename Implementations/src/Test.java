@@ -11,8 +11,53 @@ public class Test {
 	static Connection con;
 	public static void main(String[] args) throws FileNotFoundException, IOException, ClassNotFoundException, SQLException
 	{
+		con = getConnection("/Users/Antonio/My Documents/Startup/Test/");
+		Statement s = con.createStatement();
+		s.execute("SET FILES LOB SCALE 1");
+		s.close();
 		
+		String createString =
+		        "CREATE CACHED TABLE TEST" +
+		        "(ID integer NOT NULL, " +
+		        "VALUE BLOB(4G), " +
+		        "PRIMARY KEY (ID))";
+			
+		    Statement stmt = null;
+		    try {
+		        stmt = con.createStatement();
+		        stmt.executeUpdate(createString);
+		    }
+		    finally {
+		        if (stmt != null) { stmt.close(); }
+		    }
 		
+		PreparedStatement insert = con.prepareStatement("insert into test values(?, ?)");
+		insert.setInt(1, 1);
+		PreparedStatement query = con.prepareStatement("select * from test where id = ? for update");
+		PreparedStatement update = con.prepareStatement("update test set value = ? where ID = ?");
+		query.setInt(1, 1);
+		update.setInt(2, 1);
+		ResultSet r;
+		Blob b;
+		System.out.println("yo");
+		byte[] bytes = new byte[]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+		for (;;)
+		{
+			r = query.executeQuery();
+			if (r.next())
+			{
+				b = r.getBlob(2);
+				System.out.println("Length: " + b.length());
+				b.setBytes(b.length() + 1, bytes);
+				update.setBlob(1, b);
+				update.executeUpdate();
+			}
+			else
+			{
+				insert.setBlob(2, con.createBlob());
+				insert.execute();
+			}
+		}
 	}
 	private static void addIgnoredWords() throws FileNotFoundException
 	{

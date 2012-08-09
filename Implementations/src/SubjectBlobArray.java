@@ -1,9 +1,7 @@
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.sql.Blob;
 import java.sql.SQLException;
-import java.util.Arrays;
 
 import javax.sql.rowset.serial.SerialBlob;
 import javax.sql.rowset.serial.SerialException;
@@ -14,7 +12,6 @@ public class SubjectBlobArray {
     private final int ID_OFFSET = 8;
     private final int ARRAY_OFFSET = 9;
     
-    private int subjectsInQueue;
     private long size;
     
     private Blob blob;
@@ -93,6 +90,11 @@ public class SubjectBlobArray {
 		return IDs;
 	}
 	
+	public long size()
+	{
+		return size;
+	}
+	
     public void add(long date, long ID) throws SQLException, IOException
     {
     	
@@ -135,11 +137,7 @@ public class SubjectBlobArray {
     	byte[] toBeInserted = new byte[16];
     	putLong(date, toBeInserted, 0);
     	putLong(ID, toBeInserted, 8);
-    	if (blob.length() > 1000)
-    	{
-    		System.out.println("Blob size = " + blob.length());
-    		System.out.println(Arrays.toString(blob.getBytes(1, (int)blob.length())));
-    	}
+    	
     	blob.setBytes(1, putLong(++size));
     	blob.setBytes((long) ARRAY_OFFSET + (insertionPoint * (long) NODE_SIZE), toBeInserted);
     }
@@ -169,20 +167,6 @@ public class SubjectBlobArray {
 		return max - 1;
 	}
 	
-	private static void putInt(int value, byte[] array, int offset) {
-        array[offset]   = (byte)(0xff & (value >> 24));
-        array[offset+1] = (byte)(0xff & (value >> 16));
-        array[offset+2] = (byte)(0xff & (value >> 8));
-        array[offset+3] = (byte)(0xff & value);
-    }
-
-    private static int getInt(byte[] array, int offset) {
-      return
-        ((array[offset]   & 0xff) << 24) |
-        ((array[offset+1] & 0xff) << 16) |
-        ((array[offset+2] & 0xff) << 8) |
-         (array[offset+3] & 0xff);
-    }
     private static byte[] putLong(long value) {
     	byte[] array = new byte[8];
         array[0]   = (byte)(0xff & (value >> 56));

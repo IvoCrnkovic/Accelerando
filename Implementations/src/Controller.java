@@ -1,6 +1,4 @@
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -13,10 +11,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.Scanner;
-
-import org.hsqldb.jdbc.JDBCConnection;
-import org.hsqldb.jdbc.JDBCPreparedStatement;
-
 import twitter4j.FilterQuery;
 import twitter4j.StatusStream;
 import twitter4j.Status;
@@ -37,6 +31,8 @@ public class Controller
 	static ArrayList<Thread> streamThreads = new ArrayList<Thread>();
 	static TwitterStream twitterStream;
 	static Connection con;
+	
+	static long tweetNum = 1;
 	
 	static StatusListener listener = new StatusListener(){
 	    public void onStatus(Status status)
@@ -104,19 +100,20 @@ public class Controller
 		
 		
 		Thread Client = new Thread(new Client());
-		Thread tweetTableAdder = new Thread(new TweetTableAdder());
+		Thread tweetTableAdder = new Thread(new Adder());
 		
 		Client.start();
 		tweetTableAdder.setPriority(Thread.MAX_PRIORITY);
 		tweetTableAdder.start();
 		
-		long nextSave = System.currentTimeMillis() + 600000;
+		
+		long nextSave = System.currentTimeMillis() + 600000L;
 		
 		for(;;)
 		{
 			if (System.currentTimeMillis() > nextSave)
 			{
-				nextSave = System.currentTimeMillis() + 600000;
+				nextSave = System.currentTimeMillis() + 600000L;
 				try {
 					setFilesLogTrue.execute();
 					checkpointDefrag.execute();
@@ -167,6 +164,7 @@ public class Controller
 
 	public static void createSubjectTable() throws SQLException
 	{
+		//TODO Increase blob size limit
 	    String createString =
 		        "CREATE CACHED TABLE SUBJECTS" +
 		        "(SUBJECT varchar(20) NOT NULL, " +
@@ -217,17 +215,14 @@ public class Controller
 	    return conn;
 	}
 	
-	private static class TweetTableAdder implements Runnable
+	private static class Adder implements Runnable
 	{
+		static PreparedStatement statusDBInsert = null, userDBInsert = null, subjectDBInsert = null,
+								subjectBDQuery = null, userDBQuery = null, userDBUpdate = null,
+								subjectDBUpdate = null;
+		static int threadsActive;
 		public void run() 
 		{
-			PreparedStatement statusDBInsert = null, userDBInsert = null, subjectDBInsert = null,
-								subjectBDQuery = null, userDBQuery = null, userDBUpdate = null,
-								subjectDBUpdate = null, checkpoint = null;
-			ResultSet subjectResults, userResults;
-			String text;
-			Blob blob;
-			SubjectBlobArray arr;
 			try {
 				statusDBInsert = con.prepareStatement("insert into TWEET_TABLE " +
 				        "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -240,149 +235,47 @@ public class Controller
 				userDBQuery = con.prepareStatement("select * from USERS where ID = ?");
 				userDBUpdate = con.prepareStatement("update USERS set FOLLOWERS = ?, FRIENDS = ?, " +
 						"LISTED_COUNT = ?, NUM_TWEETS = ?, AVERAGE_POLARIZATION = ? WHERE ID = ?");
-				checkpoint = con.prepareStatement("CHECKPOINT");
 			} catch (SQLException e1) {
 				System.err.println(e1);
 				System.err.println("SQLException: Failed to Create Prepared Statement");
 			}
-			Status current;
-			User currentUser;
-			double polarization;
-			int userTweetCount;
-			int num = 1;
-			for(;;)
+			addStatus();
+		}
+			static void addStatus()
 			{
+				Status current;
+				User currentUser;
+				double polarization;
+				String text;
 				if (!toBeAdded.isEmpty())
 				{
+					//TODO implement thread number
 					current = toBeAdded.dequeue();
 					currentUser = current.getUser();
 					polarization = tweetEvaluator.calculatePolarization(current);
-					//System.out.println("TIME = " + current.getCreatedAt().getTime());
-					try
-					{
-						// Add To Tweet Database
-						statusDBInsert.setLong(1, current.getId());
-						statusDBInsert.setString(2, current.getText());
-						statusDBInsert.setLong(3, current.getCreatedAt().getTime());
-						statusDBInsert.setInt(4, (int) current.getRetweetCount());
-						statusDBInsert.setBoolean(5, current.isRetweet());
-						statusDBInsert.setBoolean(6, current.isFavorited());
-						statusDBInsert.setLong(7, currentUser.getId());
-						if (current.getPlace() != null)
-							statusDBInsert.setString(8, current.getPlace().getCountryCode());
-						else
-							statusDBInsert.setString(8, null);
-						if (current.getGeoLocation() != null)
-						{
-							statusDBInsert.setDouble(9, current.getGeoLocation().getLatitude());	
-							statusDBInsert.setDouble(10, current.getGeoLocation().getLongitude());
-						}
-						else
-						{
-							statusDBInsert.setDouble(9, Double.NaN);
-							statusDBInsert.setDouble(10, Double.NaN);
-						}
-						statusDBInsert.setDouble(11, polarization);
-						statusDBInsert.setDouble(12, tweetEvaluator.calculateWeight(current));
-						statusDBInsert.executeUpdate();
-						
-						
-						
-						// Add To User Database
-						userDBQuery.setLong(1, currentUser.getId());
-						userResults = userDBQuery.executeQuery();
-						if (userResults.next())
-						{
-							userTweetCount = userResults.getInt(7);
-							userDBUpdate.setInt(1, currentUser.getFollowersCount());
-							userDBUpdate.setInt(2, currentUser.getFriendsCount());
-							userDBUpdate.setInt(3, currentUser.getListedCount());
-							userDBUpdate.setInt(4, userTweetCount + 1);
-							userDBUpdate.setDouble(5, (userResults.getDouble(8) * userTweetCount + polarization) /
-													(userTweetCount + 1));
-							userDBUpdate.setLong(6, currentUser.getId());
-							userDBUpdate.executeUpdate();
-						}
-						else
-						{
-							userDBInsert.setLong(1, currentUser.getId());
-							userDBInsert.setInt(2, currentUser.getFollowersCount());
-							userDBInsert.setInt(3, currentUser.getFriendsCount());
-							userDBInsert.setInt(4, currentUser.getListedCount());
-							userDBInsert.setString(5, currentUser.getName());
-							userDBInsert.setString(6, currentUser.getScreenName());
-							userDBInsert.setInt(7, 1);
-							userDBInsert.setDouble(8, polarization);
-							userDBInsert.executeUpdate();
-						}
-						
-						
-						//TODO Remove usernames after @
-						//TODO Adjust for duplacate times
-						// Add To Subject Database
-						text = current.getText();
-						text = text.replaceAll("http:\\/\\/t.co\\/........", " ");
-						text = text.toLowerCase();
-						String[] tags = text.split("(\\W)+");
+					//TODO Remove usernames after @
+					//TODO Create Tag Ignore List
+					// Add To Subject Database
+					text = current.getText();
+					text = text.replaceAll("http:\\/\\/t.co\\/........", " ");
+					text = text.toLowerCase();
+					String[] tags = text.split("(\\W)+");
 						
 					            
-						outerloop: for (int i = 0; i < tags.length; i++)
+					outerloop: for (int i = 0; i < tags.length; i++)
+					{
+						for (int j = 0; j < i; j++)
+							if (tags[j].equals(tags[i]))
+								continue outerloop;
+						if (tags[i] == null || tags[i].length() == 0)
 						{
-							for (int j = 0; j < i; j++)
-								if (tags[j].equals(tags[i]))
-									continue outerloop;
-							if (tags[i] == null || tags[i].length() == 0)
-							{
-								continue;
-							}
-							subjectBDQuery.setString(1, tags[i]);
-							
-							subjectResults = subjectBDQuery.executeQuery();
-							 
-							//System.out.println(tags[i]);	
-							//System.out.flush();
-							if(subjectResults.next())
-						    {//System.out.println("EXISTS");	
-						    	blob = subjectResults.getBlob(2);
-						    	arr = new SubjectBlobArray(blob);
-						    	arr.add(current.getCreatedAt().getTime(), current.getId());
-						    	subjectDBUpdate.setBlob(1, blob);
-						    	subjectDBUpdate.setString(2, tags[i]);
-						    	subjectDBUpdate.executeUpdate();
-						    }
-						    else
-						    {
-						    	subjectDBInsert.setString(1, tags[i]);
-						    	subjectDBInsert.setBlob(2, SubjectBlobArray.createSubjectBlob());
-						    	subjectDBInsert.executeUpdate();
-						    	subjectResults = subjectBDQuery.executeQuery();
-						    	subjectResults.next();
-						    	blob = subjectResults.getBlob(2);
-						    	arr = new SubjectBlobArray(blob);
-						    	arr.add(current.getCreatedAt().getTime(), current.getId());
-						    	subjectDBUpdate.setBlob(1, blob);
-						    	subjectDBUpdate.setString(2, tags[i]);
-						    	subjectDBUpdate.executeUpdate();
-						    }
-							
+							continue;
 						}
-						System.out.println("TWEET NO " + (num++));
+						new Thread(new AddToSubjectTable(tags[i], current)).start();
 					}
-					catch (SQLDataException e1)
-					{
-						System.err.println("SQLDataException: Failed to add status to database");
-					}
-					catch (SQLNonTransientConnectionException e2)
-					{
-						
-					}
-					catch (Exception e)
-					{
-						System.err.println("Exception: Failed to add status to Database");
-						System.err.println(e);
-						e.printStackTrace();
-						System.exit(0);
-					}
+					new Thread(new AddToTweetTable(current, polarization)).start();
+					new Thread(new AddToUserTable(currentUser, polarization)).start();
+					System.out.println("TWEET NO " + (tweetNum++));
 				} 
 				
 				else
@@ -395,16 +288,191 @@ public class Controller
 					{
 						System.err.println("Adder Interrupted");
 					}
+					addStatus();
+				}
+			}
+			static class AddToTweetTable implements Runnable
+			{
+				Status current;
+				double polarization;
+				public AddToTweetTable(Status c, double p)
+				{
+					current = c;
+					polarization = p;
+				}
+				public void run()
+				{
+					// Add To Tweet Database
+					try
+					{
+					statusDBInsert.setLong(1, current.getId());
+					statusDBInsert.setString(2, current.getText());
+					statusDBInsert.setLong(3, current.getCreatedAt().getTime());
+					statusDBInsert.setInt(4, (int) current.getRetweetCount());
+					statusDBInsert.setBoolean(5, current.isRetweet());
+					statusDBInsert.setBoolean(6, current.isFavorited());
+					statusDBInsert.setLong(7, current.getUser().getId());
+					if (current.getPlace() != null)
+						statusDBInsert.setString(8, current.getPlace().getCountryCode());
+					else
+						statusDBInsert.setString(8, null);
+					if (current.getGeoLocation() != null)
+					{
+						statusDBInsert.setDouble(9, current.getGeoLocation().getLatitude());	
+						statusDBInsert.setDouble(10, current.getGeoLocation().getLongitude());
+					}
+					else
+					{
+						statusDBInsert.setDouble(9, Double.NaN);
+						statusDBInsert.setDouble(10, Double.NaN);
+					}
+					statusDBInsert.setDouble(11, polarization);
+					statusDBInsert.setDouble(12, tweetEvaluator.calculateWeight(current));
+					
+						statusDBInsert.executeUpdate();
+					}
+					catch (SQLException e1)
+					{
+						return;
+					}
+				}
+			}
+			static class AddToUserTable implements Runnable
+			{
+				double polarization;
+				User currentUser;
+				ResultSet userResults;
+				int userTweetCount;
+				public AddToUserTable(User u, double d)
+				{
+					polarization = d;
+					currentUser = u;
+				}
+				public void run()
+				{
+					try
+					{
+					userDBQuery.setLong(1, currentUser.getId());
+					userResults = userDBQuery.executeQuery();
+					
+					if (userResults.next())
+					{
+						userTweetCount = userResults.getInt(7);
+						userDBUpdate.setInt(1, currentUser.getFollowersCount());
+						userDBUpdate.setInt(2, currentUser.getFriendsCount());
+						userDBUpdate.setInt(3, currentUser.getListedCount());
+						userDBUpdate.setInt(4, userTweetCount + 1);
+						userDBUpdate.setDouble(5, (userResults.getDouble(8) * userTweetCount + polarization) /
+												(userTweetCount + 1));
+						userDBUpdate.setLong(6, currentUser.getId());
+						
+						userDBUpdate.executeUpdate();
+					}
+					else
+					{
+						userDBInsert.setLong(1, currentUser.getId());
+						userDBInsert.setInt(2, currentUser.getFollowersCount());
+						userDBInsert.setInt(3, currentUser.getFriendsCount());
+						userDBInsert.setInt(4, currentUser.getListedCount());
+						userDBInsert.setString(5, currentUser.getName());
+						userDBInsert.setString(6, currentUser.getScreenName());
+						userDBInsert.setInt(7, 1);
+						userDBInsert.setDouble(8, polarization);
+						
+						userDBInsert.executeUpdate();
+					}
+					}
+					catch (SQLException e1)
+					{
+						return;
+					}
+				}
+			}	
+				
+			static class AddToSubjectTable implements Runnable
+			{
+				String tag;
+				ResultSet subjectResults;
+				SubjectBlobArray arr;
+				Blob blob;
+				Status current;
+				public AddToSubjectTable(String t, Status s)
+				{
+					current = s;
+					tag = t;
+				}
+				//TODO synchronization
+				public void run()
+				{
+					try
+					{
+					subjectBDQuery.setString(1, tag);
+					
+					subjectResults = subjectBDQuery.executeQuery();
+				
+				//System.out.println(tags[i]);	
+				//System.out.flush();
+				if(subjectResults.next())
+			    {//System.out.println("EXISTS");	
+			    	blob = subjectResults.getBlob(2);
+			    	arr = new SubjectBlobArray(blob);
+			    	arr.add(current.getCreatedAt().getTime(), current.getId());
+			    	subjectDBUpdate.setBlob(1, blob);
+			    	subjectDBUpdate.setString(2, tag);
+			    	
+			    		subjectDBUpdate.executeUpdate();
+			    }
+			    else
+			    {
+			    	subjectDBInsert.setString(1, tag);
+			    	subjectDBInsert.setBlob(2, SubjectBlobArray.createSubjectBlob());
+			    	subjectDBInsert.executeUpdate();
+			    	subjectResults = subjectBDQuery.executeQuery();
+			    	subjectResults.next();
+			    	blob = subjectResults.getBlob(2);
+			    	arr = new SubjectBlobArray(blob);
+			    	arr.add(current.getCreatedAt().getTime(), current.getId());
+			    	subjectDBUpdate.setBlob(1, blob);
+			    	subjectDBUpdate.setString(2, tag);
+			    	
+			    		subjectDBUpdate.executeUpdate();
+			    }
+					}
+					catch (SQLException e1)
+					{
+						return;
+					}
+					catch (IOException e2)
+					{
+						return;
+					}
 				}
 			}
 		}
-	}
+	
+		
+	
+	
+		
+		
+		
 	private static class Client implements Runnable
 	{
 		public void run() {
 			String input = "";
 			FilterQuery query;
 			Thread thread;
+			PreparedStatement querySubjects = null, queryTweetPolarization = null;
+			try
+			{
+				querySubjects = con.prepareStatement("select * from SUBJECTS where SUBJECT = ?");
+				queryTweetPolarization = con.prepareStatement("select polarization from tweet_table where id = ?");
+			}
+			catch (SQLException e1)
+			{
+				e1.printStackTrace();
+				System.exit(1);
+			}
 			Scanner in = new Scanner(System.in);
 			do
 			{
