@@ -303,8 +303,6 @@ public class Controller
 					try
 					{
 						current = toBeAdded.dequeue();
-						System.out.println(Thread.currentThread().getId()+ ": "+ current.getId());
-						System.out.flush();
 						currentUser = current.getUser();
 						polarization = tweetEvaluator.calculatePolarization(current);
 						//TODO Remove usernames after @
