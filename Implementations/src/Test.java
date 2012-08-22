@@ -11,53 +11,57 @@ public class Test {
 	static Connection con;
 	public static void main(String[] args) throws FileNotFoundException, IOException, ClassNotFoundException, SQLException
 	{
-		con = getConnection("/Users/Antonio/My Documents/Startup/Test/");
-		Statement s = con.createStatement();
-		s.execute("SET FILES LOB SCALE 1");
-		s.close();
-		
-		String createString =
-		        "CREATE CACHED TABLE TEST" +
-		        "(ID integer NOT NULL, " +
-		        "VALUE BLOB(4G), " +
-		        "PRIMARY KEY (ID))";
-			
-		    Statement stmt = null;
-		    try {
-		        stmt = con.createStatement();
-		        stmt.executeUpdate(createString);
-		    }
-		    finally {
-		        if (stmt != null) { stmt.close(); }
-		    }
-		
-		PreparedStatement insert = con.prepareStatement("insert into test values(?, ?)");
-		insert.setInt(1, 1);
-		PreparedStatement query = con.prepareStatement("select * from test where id = ? for update");
-		PreparedStatement update = con.prepareStatement("update test set value = ? where ID = ?");
-		query.setInt(1, 1);
-		update.setInt(2, 1);
-		ResultSet r;
-		Blob b;
-		System.out.println("yo");
-		byte[] bytes = new byte[]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-		for (;;)
+		Random rand = new Random();
+		int x;
+		int[] y = new int[20];
+		y[0] = 2;
+		y[1] = 2;
+		y[2] = 3;
+		y[3] = 4;
+		y[4] = 5;
+		y[5] = 6;
+		y[6] = 7;
+		y[7] = 8;
+		y[8] = 9;
+		y[9] = 9;
+		y[10] =8;
+		y[11] = 7;
+		y[12] = 6;
+		y[13] = 5;
+		y[14] = 4;
+		y[15] = 3;
+		y[16] = 2;
+		while (true)
 		{
-			r = query.executeQuery();
-			if (r.next())
+			for (int k = 17; k < 20; k ++)
 			{
-				b = r.getBlob(2);
-				System.out.println("Length: " + b.length());
-				b.setBytes(b.length() + 1, bytes);
-				update.setBlob(1, b);
-				update.executeUpdate();
+				y[k] = (rand.nextInt(10) + 1);
 			}
+			boolean works = true;
+			outerloop: for(int j = 0; j < 1000000; j++)
+			{
+				x = rand.nextInt(9) + 1;
+				for (int i = 0; i < 20; i++)
+				{
+					if (x == 10)
+						x--;
+					else if (x == 1)
+						x++;
+					else if (rand.nextBoolean())
+						x++;
+					else 
+						x--;
+					if (x == y[i])
+						continue outerloop;
+				}
+				works = false;
+				break;
+			}
+			if (works)
+				System.out.println("WORKS: " + Arrays.toString(y));
 			else
-			{
-				insert.setBlob(2, con.createBlob());
-				insert.execute();
-			}
-		}
+				System.out.println("FAILED: " + Arrays.toString(y));
+		} 
 	}
 	private static void addIgnoredWords() throws FileNotFoundException
 	{

@@ -1,8 +1,6 @@
 import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Properties;
 import java.util.Scanner;
 
@@ -19,11 +17,7 @@ import twitter4j.TwitterException;
 import twitter4j.TwitterStream;
 import twitter4j.User;
 
-//TODO
-//postgres
-//MongoDb
-//Hadoop
-
+//TODO Maybe implement multicolumn index
 public class Controller
 {
 	final static String statusTableFile	= "StatusTable.stb",
@@ -36,13 +30,12 @@ public class Controller
 	static ArrayList<Thread> streamThreads = new ArrayList<Thread>();
 	static TwitterStream twitterStream;
 	static Connection con;
+	static PreparedStatement checkpoint;
 	static long tweetNum = 1;
 	
 	static StatusListener listener = new StatusListener(){
 	    public void onStatus(Status status)
 	    {
-	    	//TODO CHANGE THIS
-	    	//TODO Implement Language Detection
 	    	try {
 				Detector langDetector = DetectorFactory.create();
 				langDetector.append(status.getText());
@@ -76,26 +69,22 @@ public class Controller
 	{
 		TST<PolarityValue> wordPolarities;
 		// Load
-		PreparedStatement setFilesLogFalse = null, setFilesLogTrue = null, checkpoint = null,
-							checkpointDefrag = null;
 		System.out.print("Loading... ");
 		try {
-			con = getConnection("/Users/Antonio/My Documents/Startup/AccelerandoHSQLDB/");
-			
-			/*createTweetTable();
-			//createSubjectTable();
+			con = getConnection();
+			/*
+			createTweetTable();
 			createUserTable();
 			Statement s = con.createStatement();
-			//s.execute("SET DEFAULT COLLATION TWEET_TABLE NO PAD");
 			for (int i = 1; i <= MAX_TAGS; i++)
 				s.execute("CREATE INDEX tag" + i + "_index ON tweet_table (tag" + i + ")");
 			s.execute("CREATE INDEX date_index ON tweet_table (date)");
 			s.close();*/
-			setFilesLogFalse = con.prepareStatement("SET FILES LOG FALSE");
-			setFilesLogTrue = con.prepareStatement("SET FILES LOG TRUE");
+			//setFilesLogFalse = con.prepareStatement("SET FILES LOG FALSE");
+			//setFilesLogTrue = con.prepareStatement("SET FILES LOG TRUE");
 			checkpoint = con.prepareStatement("CHECKPOINT");
-			checkpointDefrag = con.prepareStatement("CHECKPOINT DEFRAG");
-			setFilesLogFalse.execute();
+			//checkpointDefrag = con.prepareStatement("CHECKPOINT DEFRAG");
+			//setFilesLogFalse.execute();
 			checkpoint.execute();
 		} 
 		catch (SQLException e1) {
@@ -135,27 +124,20 @@ public class Controller
 		//new Thread(new Adder()).start();
 		
 		
-		long nextSave = System.currentTimeMillis() + 100000L;
-		long nextDefrag = System.currentTimeMillis() + 900000L;
+		long nextSave = System.currentTimeMillis() + 1000000L;
 		
 		for(;;)
 		{
 			if (System.currentTimeMillis() > nextSave)
-			{System.out.print("Autosaving... ");
-				try {
-					if (System.currentTimeMillis() > nextDefrag)
-					{System.out.print("Defragging... ");
-						setFilesLogTrue.execute();
-						checkpointDefrag.execute();
-						setFilesLogFalse.execute();
-						nextDefrag = System.currentTimeMillis() + 900000L;
-					}
+			{
+				try
+				{System.out.print("Autosaving... ");
 					checkpoint.execute();
 					System.out.println("Done.");
 				} catch (SQLException e) {
 					System.err.println("SQLException: Automatic Commit Failed");
 				}
-				nextSave = System.currentTimeMillis() + 100000L;
+				nextSave = System.currentTimeMillis() + 1000000L;
 			}
 			else
 			{
@@ -171,7 +153,7 @@ public class Controller
 	
 	public static void createTweetTable() throws SQLException {
 	    String createString =
-	        "CREATE CACHED TABLE TWEET_TABLE " +
+	        "CREATE TABLE TWEET_TABLE " +
 	        "(ID bigint NOT NULL, " +
 	        "TEXT varchar(200) NOT NULL, " +
 	        "DATE bigint, " +
@@ -204,6 +186,9 @@ public class Controller
 	        "TAG18 varchar(140), " +
 	        "TAG19 varchar(140), " +
 	        "TAG20 varchar(140), " +
+	        "USER_TAG1 varchar(30), " +
+	        "USER_TAG2 varchar(30), " +
+	        "USER_TAG3 varchar(30), " +
 	        "PRIMARY KEY (ID))";
 
 	    Statement stmt = null;
@@ -219,7 +204,7 @@ public class Controller
 	public static void createUserTable() throws SQLException
 	{
 		 String createString =
-			        "CREATE CACHED TABLE USERS " +
+			        "CREATE TABLE USERS " +
 			        "(ID bigint NOT NULL, " +
 			        "FOLLOWERS integer NOT NULL, " +
 			        "FRIENDS integer NOT NULL, " +
@@ -240,13 +225,13 @@ public class Controller
 		    }
 	}
 	
-	public static Connection getConnection(String location) throws SQLException {
+	public static Connection getConnection() throws SQLException {
 
 		Connection conn = null;
 	    Properties connectionProps = new Properties();
-	    connectionProps.put("user", "ajuliano");
-	    connectionProps.put("password", "accelerando");
-	    conn = DriverManager.getConnection("jdbc:hsqldb:file:" + location + "accelerandoDB", connectionProps);
+	    connectionProps.put("user", "postgres");
+	    connectionProps.put("password", "princeton2015");
+	    conn = DriverManager.getConnection("jdbc:postgresql://localhost/TwitterDB", connectionProps);
 	    System.out.println("Connected to database");
 	    return conn;
 	}
@@ -256,13 +241,13 @@ public class Controller
 		static PreparedStatement userDBInsert = null, statusDBInsert = null,
 								userDBQuery = null, userDBUpdate = null;
 		static int threadsActive;
-		static int batchSize = 0;
+		//static int batchSize = 0;
 		public void run() 
 		{
 			try {
 				statusDBInsert = con.prepareStatement("insert into TWEET_TABLE " +
 				        "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "+
-						"?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+						"?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 				userDBInsert = con.prepareStatement("insert into USERS " + 
 				        "values(?, ?, ?, ?, ?, ?, ?, ?)");
 				
@@ -277,15 +262,12 @@ public class Controller
 			}
 			addStatus();
 		}
-		
-		//TODO Multithread Adder
 			static void addStatus()
 			{
 				Status current;
 				User currentUser;
 				double polarization;
-/*
-				if (batchSize > 25000)
+				/*if (batchSize > 25000)
 				{
 					System.out.print("Batch Updating... ");
 					try {
@@ -295,6 +277,12 @@ public class Controller
 						e.printStackTrace();
 					}
 					batchSize = 0;
+					try {
+						checkpoint.execute();
+					} catch (SQLException e) {
+						System.err.println("Checkpoint Failed");
+						e.printStackTrace();
+					}
 					System.out.println("Done");
 				}*/
 				
@@ -305,7 +293,6 @@ public class Controller
 						current = toBeAdded.dequeue();
 						currentUser = current.getUser();
 						polarization = tweetEvaluator.calculatePolarization(current);
-						//TODO Remove usernames after @
 						//TODO Create Tag Ignore List
 						threadsActive = 2;
 						new Thread(new AddToTweetTable(current, polarization)).start();
@@ -338,6 +325,7 @@ public class Controller
 			{
 				Status current;
 				double polarization;
+				String[] userTags = new String[3];
 				public AddToTweetTable(Status c, double p)
 				{
 					current = c;
@@ -376,6 +364,25 @@ public class Controller
 						String text;
 						text = current.getText();
 						text = text.replaceAll("http:\\/\\/t.co\\/........", " ");
+						int fromIndex = 0;
+						String lastFound = null, thisFound;
+						for (int i = 0; i < 3; i++)
+						{
+							fromIndex = text.indexOf('@', fromIndex) + 1;
+							if (fromIndex == 0)
+								break;
+							if (fromIndex >= text.length() - 1)
+							for (int j = fromIndex + 1; j < text.length(); j++)
+							{
+								thisFound = text.substring(fromIndex, j);
+								if (!thisFound.matches("\\w+"))
+									break;
+								lastFound = thisFound;
+							}
+							if (lastFound != null)
+								userTags[i] = lastFound;
+						}
+					
 						text = text.toLowerCase();
 						String[] tags = text.split("(\\W)+");
 						
@@ -398,8 +405,12 @@ public class Controller
 						for (; k < MAX_TAGS; k++)
 						{
 							statusDBInsert.setString(13 + k, null);
-						}/*
-						synchronized (Adder.class)
+						}
+						statusDBInsert.setString(33, userTags[0]);
+						statusDBInsert.setString(34, userTags[1]);
+						statusDBInsert.setString(35, userTags[2]);
+						
+						/*synchronized (Adder.class)
 						{
 							batchSize++;
 						}*/
@@ -493,6 +504,7 @@ public class Controller
 				}
 			}
 		}	
+	
 	private static class Client implements Runnable
 	{
 		public void run() {
@@ -503,7 +515,7 @@ public class Controller
 			PreparedStatement[]  queryTweetPolarization = new PreparedStatement[MAX_TAGS];
 			for (int i = 1; i <= MAX_TAGS; i++)
 				try {
-					queryTweetPolarization[i - 1] = con.prepareStatement("select polarization from tweet_table where tag" + i + " = ?");
+					queryTweetPolarization[i - 1] = con.prepareStatement("select id, polarization from tweet_table where tag" + i + " = ?");
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
@@ -519,9 +531,6 @@ public class Controller
 					Statement s = null;
 					try {
 						s = con.createStatement();
-						s.execute("SET FILES LOG TRUE");
-						s.execute("CHECKPOINT DEFRAG");
-						s.execute("SET FILES LOG FALSE");
 						s.execute("CHECKPOINT");
 					} catch (SQLException e) {
 						System.err.println("SQLException: Save Unsuccessful");
@@ -538,15 +547,6 @@ public class Controller
 					System.out.println("Done");
 					continue;
 				}
-				/*
-				if (input.equals("backup"))
-				{
-					System.out.println("Backing Up...");
-					CollectionMethods.backup(statusTableFile, statusTableBackup);
-					System.out.println("Done");
-					continue;
-				}
-				*/
 				if (input.equals("show"))
 				{
 					//TODO Write
@@ -643,7 +643,7 @@ public class Controller
 						try {
 								
 							Statement s = con.createStatement();
-							s.execute("SHUTDOWN");
+							s.execute("checkpoint");
 							//s = userConnection.createStatement();
 							//s.execute("SHUTDOWN");
 							//s = statusConnection.createStatement();
@@ -656,9 +656,12 @@ public class Controller
 					}
 				}
 				
+				//N lg N performance
 				if (input.equals("p"))
-				{//TODO Implement multiple tag search
+				{
 					String subject;
+					RBBST<Long, Double> currentTweets = new RBBST<Long, Double>(), lastTweets = null;
+					String[] tags;
 					double polarization = 0;
 					System.out.print("Subject: ");
 					subject = in.nextLine().toLowerCase();
@@ -668,28 +671,46 @@ public class Controller
 						System.err.println("Illegal Key");
 						continue;
 					}
-					ResultSet results;
-					long size = 0;
+					tags = subject.split("\\W");
 					
-					for (int i = 0; i < MAX_TAGS; i++)
+					
+					
+					for (int j = 0; j < tags.length; j++)
 					{
-						try
+						if (tags[j] == null || tags[j].equals(""))
+							continue;
+						ResultSet results;
+						currentTweets = new RBBST<Long, Double>();
+						for (int i = 0; i < MAX_TAGS; i++)
 						{
-							queryTweetPolarization[i].setString(1, subject);
-							results = queryTweetPolarization[i].executeQuery();
-							while (results.next())
+							try
 							{
-								size++;
-								polarization += results.getDouble(1);
+								queryTweetPolarization[i].setString(1, tags[j]);
+								results = queryTweetPolarization[i].executeQuery();
+								while (results.next())
+								{
+									if (lastTweets == null)
+										currentTweets.put(results.getLong(1), results.getDouble(2));
+									
+									else if (lastTweets.contains(results.getLong(1)))
+										currentTweets.put(results.getLong(1), results.getDouble(2));
+								}
+								
+							}
+							catch (Exception e)
+							{
+								e.printStackTrace();
 							}
 						}
-						catch (Exception e)
-						{
-							e.printStackTrace();
-						}
+						lastTweets = currentTweets;
 					}
-					if (size != 0L)
-					polarization /= size;
+					for (long l : currentTweets.keys())
+					{
+						polarization += currentTweets.get(l);
+					}
+					int size = currentTweets.size();
+					if (size != 0)
+						polarization /= size;
 					System.out.println("Subject Size = " + size);
 					System.out.println("Polarization = " + polarization);
 					continue;
@@ -698,6 +719,7 @@ public class Controller
 			while (true);
 		}
 	}
+	
 	private static class SubjectStream implements Runnable
 	{
 		StatusStream stream;
