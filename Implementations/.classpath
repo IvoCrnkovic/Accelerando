@@ -9,6 +9,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/JSONDependences"/>
 	<classpathentry kind="lib" path="lib/json-20090211.jar"/>
 	<classpathentry kind="lib" path="lib/httpcore-4.2.1.jar"/>
-	<classpathentry kind="lib" path="lib/postgresql-9.1-902.jdbc3.jar"/>
+	<classpathentry kind="lib" path="lib/postgresql-9.1-902.jdbc4.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

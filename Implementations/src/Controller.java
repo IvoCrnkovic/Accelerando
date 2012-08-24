@@ -1,8 +1,11 @@
 import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Properties;
 import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.cybozu.labs.langdetect.Detector;
 import com.cybozu.labs.langdetect.DetectorFactory;
@@ -17,7 +20,7 @@ import twitter4j.TwitterException;
 import twitter4j.TwitterStream;
 import twitter4j.User;
 
-//TODO Maybe implement multicolumn index
+//TODO Look into gin fuzzy upper search limit
 public class Controller
 {
 	final static String statusTableFile	= "StatusTable.stb",
@@ -26,12 +29,12 @@ public class Controller
 	final static Queue<Status> toBeAdded = new Queue<Status>();
 	final static int MAX_TAGS = 20;
 	static TweetEvaluator tweetEvaluator;
-	static ArrayList<String> track = new ArrayList<String>();
 	static ArrayList<Thread> streamThreads = new ArrayList<Thread>();
-	static TwitterStream twitterStream;
+	static TwitterStream twitterStream, queryStream;
 	static Connection con;
 	static PreparedStatement checkpoint;
 	static long tweetNum = 1;
+	static TST<Boolean> ignoredWords;
 	
 	static StatusListener listener = new StatusListener(){
 	    public void onStatus(Status status)
@@ -75,10 +78,12 @@ public class Controller
 			/*
 			createTweetTable();
 			createUserTable();
+			createFunctionTable();
 			Statement s = con.createStatement();
-			for (int i = 1; i <= MAX_TAGS; i++)
-				s.execute("CREATE INDEX tag" + i + "_index ON tweet_table (tag" + i + ")");
-			s.execute("CREATE INDEX date_index ON tweet_table (date)");
+			createTweetTablePartition(new Date(System.currentTimeMillis()));
+			s.execute("CREATE TRIGGER insert_tweet_trigger BEFORE INSERT ON tweet_table FOR EACH ROW EXECUTE PROCEDURE tweet_table_insert_trigger()");
+			//TODO Change to start with days
+			s.execute("SET constraint_exclusion = partition");
 			s.close();*/
 			//setFilesLogFalse = con.prepareStatement("SET FILES LOG FALSE");
 			//setFilesLogTrue = con.prepareStatement("SET FILES LOG TRUE");
@@ -98,6 +103,7 @@ public class Controller
 		
 		// Authenticate
 		System.out.print("Authenticating... ");
+		queryStream = CollectionMethods.authenticateSecondTwitterStream();
 		twitterStream = CollectionMethods.authenticateStream();
 		System.out.println("Done");
 		
@@ -110,9 +116,11 @@ public class Controller
 		}
 		
 		
+		queryStream.addListener(listener);
 	    twitterStream.addListener(listener);
 	    twitterStream.sample();
 		
+	   
 		
 		Thread Client = new Thread(new Client());
 		Thread tweetTableAdder = new Thread(new Adder());
@@ -151,11 +159,11 @@ public class Controller
 		}
 	}
 	
-	public static void createTweetTable() throws SQLException {
+	private static void createTweetTable() throws SQLException {
 	    String createString =
 	        "CREATE TABLE TWEET_TABLE " +
 	        "(ID bigint NOT NULL, " +
-	        "TEXT varchar(200) NOT NULL, " +
+	        "TEXT varchar(400) NOT NULL, " +
 	        "DATE bigint, " +
 	        "RETWEET_COUNT int NOT NULL, " +
 	        "IS_RETWEET boolean NOT NULL, " +
@@ -166,29 +174,9 @@ public class Controller
 	        "LONGITUDE float, " +
 	        "POLARIZATION float NOT NULL, " +
 	        "WEIGHT float NOT NULL, " +
-	        "TAG1 varchar(140), " +
-	        "TAG2 varchar(140), " +
-	        "TAG3 varchar(140), " +
-	        "TAG4 varchar(140), " +
-	        "TAG5 varchar(140), " +
-	        "TAG6 varchar(140), " +
-	        "TAG7 varchar(140), " +
-	        "TAG8 varchar(140), " +
-	        "TAG9 varchar(140), " +
-	        "TAG10 varchar(140), " +
-	        "TAG11 varchar(140), " +
-	        "TAG12 varchar(140), " +
-	        "TAG13 varchar(140), " +
-	        "TAG14 varchar(140), " +
-	        "TAG15 varchar(140), " +
-	        "TAG16 varchar(140), " +
-	        "TAG17 varchar(140), " +
-	        "TAG18 varchar(140), " +
-	        "TAG19 varchar(140), " +
-	        "TAG20 varchar(140), " +
-	        "USER_TAG1 varchar(30), " +
-	        "USER_TAG2 varchar(30), " +
-	        "USER_TAG3 varchar(30), " +
+	        "TAGS varchar[], " +
+	        "USER_TAGS varchar[], " +
+	        "LINKS varchar[], " +
 	        "PRIMARY KEY (ID))";
 
 	    Statement stmt = null;
@@ -201,8 +189,9 @@ public class Controller
 	    }
 	}
 	
-	public static void createUserTable() throws SQLException
+	private static void createUserTable() throws SQLException
 	{
+		//TODO Put Influence in
 		 String createString =
 			        "CREATE TABLE USERS " +
 			        "(ID bigint NOT NULL, " +
@@ -224,8 +213,77 @@ public class Controller
 		        if (stmt != null) { stmt.close(); }
 		    }
 	}
+	private static void createFunctionTable() throws SQLException
+	{
+		 String createString =
+			        "CREATE TABLE FUNCTIONS " +
+			        "(name varchar(200) NOT NULL, " +
+			        "text varchar NOT NULL, " +
+			        "PRIMARY KEY (name))";
+
+		    Statement stmt = null;
+		    try {
+		        stmt = con.createStatement();
+		        stmt.executeUpdate(createString);
+		    }
+		    finally {
+		        if (stmt != null) { stmt.close(); }
+		    }
+	}
 	
-	public static Connection getConnection() throws SQLException {
+	private static void createTweetTablePartition(java.util.Date date) throws SQLException
+	{
+		//TODO Change back
+		Statement createPartition = con.createStatement();
+		String suffix = dateToPartitionSuffix(date);
+		createPartition.execute("CREATE TABLE tweet_table_" + suffix +
+				" (CHECK (date >= " + date.getTime() + " AND date < " + (date.getTime() + 86400000L) +
+				" )) INHERITS (tweet_table)");
+		createPartition.execute("CREATE INDEX date_index_" + suffix + " ON tweet_table_" + suffix + " (date)");
+		createPartition.execute("CREATE INDEX tag_index_" + suffix + " ON tweet_table_" + suffix + " USING GIN (tags)");
+		createPartition.execute("CREATE INDEX user_tag_index_" + suffix + " ON tweet_table_" + suffix + " USING GIN (user_tags)");
+		//TODO Maybe index links
+		createPartition.close();
+		updateTweetTableInsertScript(date);
+	}
+	
+	private static String dateToPartitionSuffix(java.util.Date date)
+	{
+		Calendar cal = Calendar.getInstance();
+	    cal.setTime(date);
+	    int year = cal.get(Calendar.YEAR);
+	    int month = cal.get(Calendar.MONTH);
+	    int day = cal.get(Calendar.DAY_OF_MONTH);
+		return year + "_" + month + "_" + day;
+	}
+	
+	private static void updateTweetTableInsertScript(java.util.Date date) throws SQLException
+	{
+		Statement getFunction = con.createStatement();
+		String text;
+		ResultSet r = getFunction.executeQuery("SELECT text from functions where name = 'tweetTableInsert'");
+		if (r.next())
+		{
+			text = r.getString(1);
+			String[] parts = text.split("IF", 2);
+			text = parts[0] + "IF (NEW.date >= " + date.getTime() + " AND NEW.date " +
+					"< " + (date.getTime() + 86400000L) + " ) THEN INSERT INTO tweet_table_" + dateToPartitionSuffix(date) +
+					" VALUES (NEW.*); ELSEIF" + parts[1];
+			getFunction.executeUpdate("UPDATE functions SET text = '" + text + "' WHERE name = 'tweetTableInsert'");
+		}
+		else
+		{
+			text = "CREATE OR REPLACE FUNCTION tweet_table_insert_trigger() " +
+					"RETURNS TRIGGER AS $$ BEGIN IF (NEW.date >= " + date.getTime() + " AND NEW.date " +
+					"< " + (date.getTime() + 86400000L) + " ) THEN INSERT INTO tweet_table_" + dateToPartitionSuffix(date) +
+					" VALUES (NEW.*); ELSE RAISE EXCEPTION ''Date Out Of Range''; END IF; RETURN NULL; END; $$ LANGUAGE plpgsql;";
+			getFunction.executeUpdate("INSERT INTO functions values('tweetTableInsert', '" + text + "')");
+		}
+		getFunction.execute(text.replaceAll("''", "'"));
+		getFunction.close();
+	}
+	
+	private static Connection getConnection() throws SQLException {
 
 		Connection conn = null;
 	    Properties connectionProps = new Properties();
@@ -246,8 +304,7 @@ public class Controller
 		{
 			try {
 				statusDBInsert = con.prepareStatement("insert into TWEET_TABLE " +
-				        "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "+
-						"?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+				        "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 				userDBInsert = con.prepareStatement("insert into USERS " + 
 				        "values(?, ?, ?, ?, ?, ?, ?, ?)");
 				
@@ -325,7 +382,9 @@ public class Controller
 			{
 				Status current;
 				double polarization;
-				String[] userTags = new String[3];
+				ArrayList<String> userTags = new ArrayList<String>();
+				ArrayList<String> finalTags = new ArrayList<String>();
+				ArrayList<String> links = new ArrayList<String>();
 				public AddToTweetTable(Status c, double p)
 				{
 					current = c;
@@ -363,30 +422,26 @@ public class Controller
 						//Add Tags
 						String text;
 						text = current.getText();
-						text = text.replaceAll("http:\\/\\/t.co\\/........", " ");
-						int fromIndex = 0;
-						String lastFound = null, thisFound;
-						for (int i = 0; i < 3; i++)
+						Pattern linkPattern = Pattern.compile("http:\\/\\/t.co\\/(\\w)+");
+						Matcher linkMatcher = linkPattern.matcher(text);
+						while (linkMatcher.find())
+							links.add(linkMatcher.group(1));
+						
+						text = text.replaceAll("http:\\/\\/t.co\\/(\\w)+", "");
+						
+						Pattern userTagPattern = Pattern.compile("@(\\w)+");
+						Matcher userTagMatcher = userTagPattern.matcher(text);
+						while (userTagMatcher.find())
 						{
-							fromIndex = text.indexOf('@', fromIndex) + 1;
-							if (fromIndex == 0)
-								break;
-							if (fromIndex >= text.length() - 1)
-							for (int j = fromIndex + 1; j < text.length(); j++)
-							{
-								thisFound = text.substring(fromIndex, j);
-								if (!thisFound.matches("\\w+"))
-									break;
-								lastFound = thisFound;
-							}
-							if (lastFound != null)
-								userTags[i] = lastFound;
+							userTags.add(userTagMatcher.group(1).substring(1));
+							
 						}
-					
+						
+						text = text.replaceAll("@(\\w)+", "");
+						
 						text = text.toLowerCase();
 						String[] tags = text.split("(\\W)+");
 						
-						int k = 0;
 						outerloop: for (int i = 0; i < tags.length; i++)
 						{
 							for (int j = 0; j < i; j++)
@@ -396,19 +451,11 @@ public class Controller
 							{
 								continue;
 							}
-							if (k >= MAX_TAGS)
-								break;
-							
-							statusDBInsert.setString(13 + k, tags[k]);
-							k++;
+							finalTags.add(tags[i]);
 						}
-						for (; k < MAX_TAGS; k++)
-						{
-							statusDBInsert.setString(13 + k, null);
-						}
-						statusDBInsert.setString(33, userTags[0]);
-						statusDBInsert.setString(34, userTags[1]);
-						statusDBInsert.setString(35, userTags[2]);
+						statusDBInsert.setArray(13, con.createArrayOf("varchar", finalTags.toArray(new String[finalTags.size()])));
+						statusDBInsert.setArray(14, con.createArrayOf("varchar", userTags.toArray(new String[userTags.size()])));
+						statusDBInsert.setArray(15, con.createArrayOf("varchar", links.toArray(new String[links.size()])));
 						
 						/*synchronized (Adder.class)
 						{
@@ -420,8 +467,20 @@ public class Controller
 					catch (Exception e1)
 					{
 						System.err.println("Exception: Failed to add to Tweet Table");
-						System.err.println(current.getId());
+						//System.err.println(current.getId());
 						e1.printStackTrace();
+						if (e1.getMessage().equals("ERROR: Date Out Of Range"))
+						{
+							System.err.println("Date Out of range. Creating new partition");
+							try {
+								createTweetTablePartition(current.getCreatedAt());
+								run();
+								return;
+							} catch (SQLException e) {
+								System.err.println("Failed To Create Partition");
+								e.printStackTrace();
+							}
+						}
 						synchronized (Adder.class)
 						{
 							threadsActive--;
@@ -503,19 +562,29 @@ public class Controller
 					}
 				}
 			}
-		}	
-	
+		}
+	//TODO this
+	/*
+		static class UserTagged implements Runnable
+		{
+			public UserTagged (String )
+			public void run() {
+				
+				
+			}
+			
+		}*/
 	private static class Client implements Runnable
 	{
 		public void run() {
 			String input = "";
-			FilterQuery query;
 			Thread thread;
+			ArrayList<String> track = new ArrayList<String>();
 			PreparedStatement querySubjects = null; 
-			PreparedStatement[]  queryTweetPolarization = new PreparedStatement[MAX_TAGS];
+			PreparedStatement queryTweetPolarization = null;
 			for (int i = 1; i <= MAX_TAGS; i++)
 				try {
-					queryTweetPolarization[i - 1] = con.prepareStatement("select id, polarization from tweet_table where tag" + i + " = ?");
+					queryTweetPolarization = con.prepareStatement("select polarization from tweet_table where tags @> ?");
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
@@ -582,23 +651,22 @@ public class Controller
 					System.out.print("Subject: ");
 					input = in.nextLine().toLowerCase();
 					System.out.println();
-					if (track.contains(input))
+					String[] tags = input.split(" ");
+					for (int i = 0; i < tags.length; i++)
 					{
-						System.out.println("Stream Already Exists");
-						continue;
+						if (track.contains(tags[i]) || tags[i] == null || tags[i].equals(""))
+							continue;
+						track.add(tags[i]);
 					}
-					track.add(input);
-					query = new FilterQuery();
-					query.track(input.split(" "));
-					try {
-						thread = new Thread(new SubjectStream(twitterStream.getFilterStream(query), track.indexOf(input)));
-					} catch (TwitterException e) {
-						System.err.println("Twitter Exception: Unable to open stream");
-						continue;
+					FilterQuery query = new FilterQuery();
+					tags = new String[track.size()];
+					int i = 0;
+					for (String s : track)
+					{
+						tags[i++] = s;
 					}
-					streamThreads.add(thread);
-					thread.setPriority(Thread.MIN_PRIORITY);
-					thread.start();
+					query.track(tags);
+					queryStream.filter(query);
 					continue;
 				}
 				if (input.equals("show streams"))
@@ -609,18 +677,7 @@ public class Controller
 				}
 				if (input.equals("close stream"))
 				{
-					System.out.print("Subject: ");
-					input = in.nextLine();
-					System.out.println();
-					int index = track.indexOf(input);
-					if (index == -1)
-					{
-						System.out.println("Not Found");
-						continue;
-					}
-					track.remove(index);
-					streamThreads.get(index).interrupt();
-					continue;
+					//TODO write
 				}
 				if (input.equals("queue size"))
 				{
@@ -655,14 +712,15 @@ public class Controller
 						System.exit(0);
 					}
 				}
-				
-				//N lg N performance
-				if (input.equals("p"))
+				if (input.equals("tagged with"))
 				{
 					String subject;
-					RBBST<Long, Double> currentTweets = new RBBST<Long, Double>(), lastTweets = null;
+					RBBST<Long, String> currentTweets = new RBBST<Long, String>(), lastTweets = null;
+					TST<Integer> similarWords = new TST<Integer>();
 					String[] tags;
-					double polarization = 0;
+					intString[] finals = new intString[10];
+					for (int i = 0; i < 10; i++)
+						finals[i] = new intString("", 0);
 					System.out.print("Subject: ");
 					subject = in.nextLine().toLowerCase();
 					System.out.println();
@@ -674,26 +732,25 @@ public class Controller
 					tags = subject.split("\\W");
 					
 					
-					
 					for (int j = 0; j < tags.length; j++)
 					{
 						if (tags[j] == null || tags[j].equals(""))
 							continue;
 						ResultSet results;
-						currentTweets = new RBBST<Long, Double>();
+						currentTweets = new RBBST<Long, String>();
 						for (int i = 0; i < MAX_TAGS; i++)
 						{
 							try
 							{
-								queryTweetPolarization[i].setString(1, tags[j]);
-								results = queryTweetPolarization[i].executeQuery();
+								queryTweetPolarization.setString(1, tags[j]);
+								results = queryTweetPolarization.executeQuery();
 								while (results.next())
 								{
 									if (lastTweets == null)
-										currentTweets.put(results.getLong(1), results.getDouble(2));
+										currentTweets.put(results.getLong(1), results.getString(3));
 									
 									else if (lastTweets.contains(results.getLong(1)))
-										currentTweets.put(results.getLong(1), results.getDouble(2));
+										currentTweets.put(results.getLong(1), results.getString(3));
 								}
 								
 							}
@@ -704,11 +761,81 @@ public class Controller
 						}
 						lastTweets = currentTweets;
 					}
+					String[] words;
 					for (long l : currentTweets.keys())
 					{
-						polarization += currentTweets.get(l);
+						words = currentTweets.get(l).split("\\W");
+						for (int i = 0; i < words.length; i++)
+						{
+							if (words[i] == null || words[i].equals(""))
+								continue;
+							if (similarWords.contains(words[i]))
+								similarWords.put(words[i], similarWords.get(words[i]) + 1);
+							else
+								similarWords.put(words[i], 1);
+						}
 					}
-					int size = currentTweets.size();
+					int num;
+					for (String s : similarWords.keys())
+					{
+						num = similarWords.get(s);
+						for (int i = 0; i < 10; i++)
+							if (num > (int) finals[i].d)
+							{
+								intString last = finals[i];
+								for (int j = i + 1; j < 10; j++)
+								{
+									finals[i] = finals[j];
+									finals[j] = last;
+									last = finals[i];
+								}
+								finals[i] = new intString(s, num);
+								break;
+							}
+					}
+					
+					for (int i = 0; i < 10; i++)
+						System.out.println(finals[i].s + "\t\t\t" + (int) finals[i].d);
+					continue;
+				}
+				
+				
+				//N lg N performance
+				if (input.equals("p"))
+				{
+					String subject;
+					ArrayList<String> tags = new ArrayList<String>();
+					double polarization = 0;
+					System.out.print("Subject: ");
+					subject = in.nextLine().toLowerCase();
+					System.out.println();
+					if (subject == null || subject.equals(""))
+					{
+						System.err.println("Illegal Key");
+						continue;
+					}
+					String[] originalTags = subject.split("\\W");
+					
+					for (int i = 0; i < originalTags.length; i++)
+						if (originalTags[i] != null && !originalTags[i].equals(""))
+							tags.add(originalTags[i]);
+					int size = 0;
+					try 
+					{
+						queryTweetPolarization.setArray(1, con.createArrayOf("varchar", tags.toArray(new String[tags.size()])));
+						ResultSet results = queryTweetPolarization.executeQuery();
+						
+						while (results.next())
+						{
+							polarization += results.getDouble(1);
+							size++;
+						}
+					}
+					catch (SQLException e)
+					{
+						e.printStackTrace();
+					}
+					
 					if (size != 0)
 						polarization /= size;
 					System.out.println("Subject Size = " + size);
@@ -717,47 +844,16 @@ public class Controller
 				}
 			}
 			while (true);
+			
 		}
-	}
-	
-	private static class SubjectStream implements Runnable
-	{
-		StatusStream stream;
-		int index;
-		public SubjectStream(StatusStream s, int index)
+		private class intString
 		{
-			stream = s;
-			this.index = index;
-		}
-		public void run() {
-			try {
-				Thread.sleep(10000);
-			} catch (InterruptedException e1) {
-				e1.printStackTrace();
-			}
-			for(;;)
+			String s;
+			int d;
+			public intString(String s, int d)
 			{
-				if(Thread.interrupted())
-				{
-					try {
-						stream.close();
-					} catch (IOException e) {
-						System.err.println("Failed to close StatusStream");
-					}
-					return;
-				}
-				try {
-					stream.next(listener);
-				} catch (TwitterException e) {/*
-					track.remove(index);
-					try {
-						stream.close();
-						streamThreads.remove(index);
-					} catch (IOException e1) {
-						System.err.println("Failed to close StatusStream");
-					}*/
-					System.err.println("Twitter Exception");
-				}
+				this.s = s;
+				this.d = d;
 			}
 		}
 	}

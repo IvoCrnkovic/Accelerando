@@ -15,6 +15,12 @@ public class CollectionMethods {
 	final static String consumerSecret = "pvei5cAMJgy5qXQPjuyyki508ZxHPM6ypRJt94OW9sY";
 	final static String token = "17186983-6cc4E3GPsn1aFNrMsr5qJKpm8a0mxFl8ozsmUP43t";
 	final static String tokenSecret = "p4Sc5WrSdSL2R4cUxqal86QRosbW5txbFQYF5ItOow";
+	final static String username2 = "accelerando2015";
+	final static String password2 = "princeton2015";
+	final static String consumerKey2 = "jXpbKl4g9FTMuTLKp57zQ";
+	final static String consumerSecret2 = "ySX84mrnKO2dySpeeVDjMReCXmilE8JKXEXXl7xSPAc";
+	final static String token2 = "774334322-bzRyWU9I7eAHfHuRBNlExGBuA2vVzXeceOtpVD71";
+	final static String tokenSecret2 = "5xzXW0K4eJixCOMWwikqGSEJri0arAsYdUOQus0";
 	public static Twitter authenticate()
 	{
 		ConfigurationBuilder cb = new ConfigurationBuilder();
@@ -42,6 +48,21 @@ public class CollectionMethods {
         cb.setOAuthAccessTokenSecret(tokenSecret);
         TwitterStreamFactory tf = new TwitterStreamFactory(cb.build());
         AccessToken accessToken = new AccessToken(token, tokenSecret);
+        TwitterStream twitterStream = tf.getInstance(accessToken);
+        return twitterStream;
+	}
+	public static TwitterStream authenticateSecondTwitterStream()
+	{
+		ConfigurationBuilder cb = new ConfigurationBuilder();
+        cb.setDebugEnabled(true);
+        cb.setUser(username2);
+        cb.setPassword(password2);
+        cb.setOAuthConsumerKey(consumerKey2);
+        cb.setOAuthConsumerSecret(consumerSecret2);
+        cb.setOAuthAccessToken(token2);
+        cb.setOAuthAccessTokenSecret(tokenSecret2);
+        TwitterStreamFactory tf = new TwitterStreamFactory(cb.build());
+        AccessToken accessToken = new AccessToken(token2, tokenSecret2);
         TwitterStream twitterStream = tf.getInstance(accessToken);
         return twitterStream;
 	}
