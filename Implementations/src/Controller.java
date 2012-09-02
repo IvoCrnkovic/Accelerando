@@ -80,6 +80,7 @@ public class Controller
 			createUserTable();
 			createFunctionTable();
 			Statement s = con.createStatement();
+			
 			createTweetTablePartition(new Date(System.currentTimeMillis()));
 			s.execute("CREATE TRIGGER insert_tweet_trigger BEFORE INSERT ON tweet_table FOR EACH ROW EXECUTE PROCEDURE tweet_table_insert_trigger()");
 			//TODO Change to start with days
@@ -118,7 +119,7 @@ public class Controller
 		
 		queryStream.addListener(listener);
 	    twitterStream.addListener(listener);
-	    twitterStream.sample();
+	    //twitterStream.sample();
 		
 	   
 		
@@ -233,16 +234,15 @@ public class Controller
 	
 	private static void createTweetTablePartition(java.util.Date date) throws SQLException
 	{
-		//TODO Change back
 		Statement createPartition = con.createStatement();
 		String suffix = dateToPartitionSuffix(date);
 		createPartition.execute("CREATE TABLE tweet_table_" + suffix +
 				" (CHECK (date >= " + date.getTime() + " AND date < " + (date.getTime() + 86400000L) +
 				" )) INHERITS (tweet_table)");
 		createPartition.execute("CREATE INDEX date_index_" + suffix + " ON tweet_table_" + suffix + " (date)");
+		createPartition.execute("CREATE INDEX user_index_" + suffix + " ON tweet_table_" + suffix + " (user_id)");
 		createPartition.execute("CREATE INDEX tag_index_" + suffix + " ON tweet_table_" + suffix + " USING GIN (tags)");
 		createPartition.execute("CREATE INDEX user_tag_index_" + suffix + " ON tweet_table_" + suffix + " USING GIN (user_tags)");
-		//TODO Maybe index links
 		createPartition.close();
 		updateTweetTableInsertScript(date);
 	}
@@ -269,7 +269,7 @@ public class Controller
 			text = parts[0] + "IF (NEW.date >= " + date.getTime() + " AND NEW.date " +
 					"< " + (date.getTime() + 86400000L) + " ) THEN INSERT INTO tweet_table_" + dateToPartitionSuffix(date) +
 					" VALUES (NEW.*); ELSEIF" + parts[1];
-			getFunction.executeUpdate("UPDATE functions SET text = '" + text + "' WHERE name = 'tweetTableInsert'");
+			getFunction.executeUpdate("UPDATE functions SET text = '" + text.replaceAll("'", "''") + "' WHERE name = 'tweetTableInsert'");
 		}
 		else
 		{
@@ -466,12 +466,9 @@ public class Controller
 					}
 					catch (Exception e1)
 					{
-						System.err.println("Exception: Failed to add to Tweet Table");
-						//System.err.println(current.getId());
-						e1.printStackTrace();
 						if (e1.getMessage().equals("ERROR: Date Out Of Range"))
 						{
-							System.err.println("Date Out of range. Creating new partition");
+							System.out.println("Date Out of range. Creating new partition");
 							try {
 								createTweetTablePartition(current.getCreatedAt());
 								run();
@@ -480,6 +477,11 @@ public class Controller
 								System.err.println("Failed To Create Partition");
 								e.printStackTrace();
 							}
+						}
+						else
+						{
+							System.err.println("Exception: Failed to add to Tweet Table");
+							e1.printStackTrace();
 						}
 						synchronized (Adder.class)
 						{
@@ -580,6 +582,7 @@ public class Controller
 			String input = "";
 			Thread thread;
 			ArrayList<String> track = new ArrayList<String>();
+			ArrayList<Double> locations = new ArrayList<Double>();
 			PreparedStatement querySubjects = null; 
 			PreparedStatement queryTweetPolarization = null;
 			for (int i = 1; i <= MAX_TAGS; i++)
@@ -646,7 +649,7 @@ public class Controller
 					System.out.println("Free Memory: " + Runtime.getRuntime().freeMemory() / 1000000 + " MB");
 					continue;
 				}
-				if (input.equals("open stream"))
+				if (input.equals("open subject stream"))
 				{
 					System.out.print("Subject: ");
 					input = in.nextLine().toLowerCase();
@@ -666,6 +669,49 @@ public class Controller
 						tags[i++] = s;
 					}
 					query.track(tags);
+					queryStream.filter(query);
+					continue;
+				}
+				if (input.equals("open location stream"))
+				{
+					System.out.print("Location: ");
+					System.out.println();
+					input = in.nextLine();
+					String[] points = input.split(" ");
+					double[] doublePoints = new double[4];
+					try
+					{
+						for (int i = 0; i < 4; i++)
+							doublePoints[i] = Double.parseDouble(points[i]);
+					}
+					catch (Exception e)
+					{
+						System.err.println("Invalid Input");
+						continue;
+					}
+					for (int i = 0; i < 4; i++)
+						locations.add(doublePoints[i]);
+						
+					FilterQuery query = new FilterQuery();
+					String[] tags = new String[track.size()];
+					double[][] places = new double[locations.size()][2];
+					int i = 0;
+					for (String s : track)
+					{
+						tags[i++] = s;
+					}
+					for (int j = 0; j < locations.size(); j += 4)
+					{
+						places[j / 2][0] = locations.get(j);
+						places[j / 2][1] = locations.get(j + 1);
+						places[(j / 2) + 1][0] = locations.get(j + 2);
+						places[(j / 2) + 1][1] = locations.get(j + 3);
+					}
+					System.out.println(places[0][0]);
+					System.out.println(places[0][1]);
+					System.out.println(places[1][0]);
+					System.out.println(places[1][1]);
+					query.track(tags).locations(places);
 					queryStream.filter(query);
 					continue;
 				}
@@ -711,92 +757,6 @@ public class Controller
 						System.out.println("Done.");
 						System.exit(0);
 					}
-				}
-				if (input.equals("tagged with"))
-				{
-					String subject;
-					RBBST<Long, String> currentTweets = new RBBST<Long, String>(), lastTweets = null;
-					TST<Integer> similarWords = new TST<Integer>();
-					String[] tags;
-					intString[] finals = new intString[10];
-					for (int i = 0; i < 10; i++)
-						finals[i] = new intString("", 0);
-					System.out.print("Subject: ");
-					subject = in.nextLine().toLowerCase();
-					System.out.println();
-					if (subject == null || subject.equals(""))
-					{
-						System.err.println("Illegal Key");
-						continue;
-					}
-					tags = subject.split("\\W");
-					
-					
-					for (int j = 0; j < tags.length; j++)
-					{
-						if (tags[j] == null || tags[j].equals(""))
-							continue;
-						ResultSet results;
-						currentTweets = new RBBST<Long, String>();
-						for (int i = 0; i < MAX_TAGS; i++)
-						{
-							try
-							{
-								queryTweetPolarization.setString(1, tags[j]);
-								results = queryTweetPolarization.executeQuery();
-								while (results.next())
-								{
-									if (lastTweets == null)
-										currentTweets.put(results.getLong(1), results.getString(3));
-									
-									else if (lastTweets.contains(results.getLong(1)))
-										currentTweets.put(results.getLong(1), results.getString(3));
-								}
-								
-							}
-							catch (Exception e)
-							{
-								e.printStackTrace();
-							}
-						}
-						lastTweets = currentTweets;
-					}
-					String[] words;
-					for (long l : currentTweets.keys())
-					{
-						words = currentTweets.get(l).split("\\W");
-						for (int i = 0; i < words.length; i++)
-						{
-							if (words[i] == null || words[i].equals(""))
-								continue;
-							if (similarWords.contains(words[i]))
-								similarWords.put(words[i], similarWords.get(words[i]) + 1);
-							else
-								similarWords.put(words[i], 1);
-						}
-					}
-					int num;
-					for (String s : similarWords.keys())
-					{
-						num = similarWords.get(s);
-						for (int i = 0; i < 10; i++)
-							if (num > (int) finals[i].d)
-							{
-								intString last = finals[i];
-								for (int j = i + 1; j < 10; j++)
-								{
-									finals[i] = finals[j];
-									finals[j] = last;
-									last = finals[i];
-								}
-								finals[i] = new intString(s, num);
-								break;
-							}
-					}
-					
-					for (int i = 0; i < 10; i++)
-						System.out.println(finals[i].s + "\t\t\t" + (int) finals[i].d);
-					continue;
 				}
 				
 				

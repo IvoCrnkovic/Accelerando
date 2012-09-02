@@ -28,9 +28,6 @@ public class TweetEvaluator {
 	 * @param tweet the tweet to analyze
 	 * @return A double representing the total polarization of the tweet.
 	 */
-	public double calculatePolarization(SuperTweet tweet) {
-		return determineSentiment(tweet.getTweet().getText());
-	}
 	
 	public double calculatePolarization(Status status) {
 		return determineSentiment(status.getText());
@@ -47,14 +44,6 @@ public class TweetEvaluator {
 	 * @return A double representing the weight of the tweet.
 	 * @throws TwitterException
 	 */
-	public double calculateWeight(SuperTweet tweet) throws TwitterException 
-	{
-        long numFollowers= tweet.getUser().getFollowersCount();
-        long numListed   = tweet.getUser().getListedCount();
-        double total = numFollowers + numListed;
-        
-        return Math.log10(total+2);
-	}
 	
 	public double calculateWeight(Status status)
 	{
